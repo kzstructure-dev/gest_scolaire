@@ -499,3 +499,21 @@ php bin/console app:user:create admin@ecole-horizon.ci "MotDePasse" Administrate
 Les mots de passe sont haches par Symfony, aucun mot de passe en clair n'est stocke. Le nom du role doit exister dans la table `roles`.
 
 La page PHP historique `index.php` reste hors du pare-feu Symfony : elle doit etre retiree ou passee derriere le pare-feu avant toute mise en production.
+
+## 26. Tests automatises
+
+```powershell
+php bin/phpunit
+```
+
+Les tests fonctionnels couvrent l'authentification et les droits :
+
+- redirection vers `/login` pour un visiteur non authentifie ;
+- echec de connexion avec de mauvais identifiants ;
+- mise a jour de `users.last_login_at` et insertion dans `audit_logs` a chaque connexion reussie ;
+- acces aux sept modules pour les roles Administrateur, Scolarite, Enseignant et Comptable (200 ou 403) ;
+- menu lateral filtre par role ;
+- deconnexion ;
+- page 403 en francais.
+
+`tests/bootstrap.php` recree la base SQLite de test `var/gest_scolaire_test.sqlite` a chaque execution (schema et donnees de reference produits par `config.php`) et y insere les comptes de test declares dans `tests/TestUsers.php`. La base de developpement `data/gest_scolaire.sqlite` n'est jamais touchee. Le chemin de la base peut etre change via la variable d'environnement `GEST_SCOLAIRE_DB`.

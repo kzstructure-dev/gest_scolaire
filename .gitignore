@@ -5,3 +5,8 @@ data/*.sqlite-journal
 /vendor/
 /.env.local
 /.env.*.local
+
+###> phpunit/phpunit ###
+/phpunit.xml
+/.phpunit.cache/
+###< phpunit/phpunit ###
