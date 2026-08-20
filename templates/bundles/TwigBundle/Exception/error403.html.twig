@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Ecole Horizon | Acces refuse</title>
+    <style>
+        :root { font-family: Arial, sans-serif; color: #17343a; } * { box-sizing: border-box; }
+        body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #17343a; padding: 24px; }
+        .card { width: 100%; max-width: 420px; background: #fff; border-radius: 12px; padding: 32px; }
+        .brand { font-weight: bold; font-size: 18px; } .brand span { display: block; color: #718186; font-size: 12px; font-weight: normal; margin-top: 5px; }
+        h1 { font-size: 20px; margin: 26px 0 6px; } p { color: #718186; font-size: 13px; margin: 0 0 18px; }
+        .actions { display: flex; gap: 10px; }
+        .button { display: inline-block; background: #0f7771; color: #fff; border-radius: 6px; padding: 11px 16px; font-weight: bold; font-size: 13px; text-decoration: none; }
+        .button.secondary { background: #e4f2ef; color: #0f7771; }
+    </style>
+</head>
+<body>
+<section class="card">
+    <div class="brand">Ecole Horizon<span>Gestion scolaire</span></div>
+    <h1>Acces refuse</h1>
+    <p>Votre profil ne dispose pas des droits necessaires pour consulter cette page. Contactez la direction si vous pensez qu'il s'agit d'une erreur.</p>
+    <div class="actions">
+        <a class="button" href="{{ path('app_dashboard') }}">Retour au tableau de bord</a>
+        <a class="button secondary" href="{{ path('app_logout') }}">Changer de compte</a>
+    </div>
+</section>
+</body>
+</html>

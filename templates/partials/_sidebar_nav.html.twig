@@ -1,0 +1,19 @@
+<nav>
+    <a class="{{ active == 'dashboard' ? 'active' : '' }}" href="{{ path('app_dashboard') }}">⌂ Tableau de bord</a>
+    {% if is_granted('ROLE_SCOLARITE') or is_granted('ROLE_DIRECTION') %}
+        <a class="{{ active == 'students' ? 'active' : '' }}" href="{{ path('app_students') }}">◉ Eleves</a>
+    {% endif %}
+    {% if is_granted('ROLE_SCOLARITE') or is_granted('ROLE_ENSEIGNANT') or is_granted('ROLE_DIRECTION') %}
+        <a class="{{ active == 'classes' ? 'active' : '' }}" href="{{ path('app_classes') }}">▦ Classes</a>
+    {% endif %}
+    {% if is_granted('ROLE_ENSEIGNANT') or is_granted('ROLE_EDUCATEUR') or is_granted('ROLE_SCOLARITE') or is_granted('ROLE_DIRECTION') %}
+        <a class="{{ active == 'attendance' ? 'active' : '' }}" href="{{ path('app_attendance') }}">✓ Presences</a>
+    {% endif %}
+    {% if is_granted('ROLE_ENSEIGNANT') or is_granted('ROLE_SCOLARITE') or is_granted('ROLE_DIRECTION') %}
+        <a class="{{ active == 'evaluations' ? 'active' : '' }}" href="{{ path('app_evaluations') }}">▤ Notes</a>
+        <a class="{{ active == 'report_cards' ? 'active' : '' }}" href="{{ path('app_report_cards') }}">▤ Bulletins</a>
+    {% endif %}
+    {% if is_granted('ROLE_COMPTABLE') or is_granted('ROLE_DIRECTION') %}
+        <a class="{{ active == 'finance' ? 'active' : '' }}" href="{{ path('app_finance') }}">₣ Finances</a>
+    {% endif %}
+</nav>

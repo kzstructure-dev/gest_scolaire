@@ -60,7 +60,18 @@ final class DashboardController extends AbstractController
             }
         }
 
+        $today = new \DateTimeImmutable('now', new \DateTimeZone('Africa/Abidjan'));
+        $formatter = new \IntlDateFormatter(
+            'fr_CI',
+            \IntlDateFormatter::FULL,
+            \IntlDateFormatter::NONE,
+            'Africa/Abidjan',
+            \IntlDateFormatter::GREGORIAN,
+            'EEEE d MMMM y'
+        );
+
         return $this->render('dashboard/index.html.twig', [
+            'today' => ucfirst((string) $formatter->format($today)),
             'students' => $students,
             'primaryCount' => $primaryCount,
             'secondaryCount' => count($students) - $primaryCount,

@@ -34,9 +34,9 @@
         @media (max-width: 650px) { .shell { display: block; } aside { width: 100%; padding: 16px; } nav { grid-template-columns: repeat(3, 1fr); } .topbar { padding: 0 17px; } .content { padding: 25px 17px 45px; } .stats, .module-groups { grid-template-columns: 1fr; } .module-list { grid-template-columns: 1fr 1fr; } header { display: block; } .badge { display: inline-block; margin-top: 15px; } }
     </style>
 </head>
-<body><div class="shell"><aside><div class="brand">Ecole Horizon<span>Gestion scolaire</span></div><div class="year">Annee scolaire<strong>2025 - 2026</strong></div><nav><a class="active" href="{{ path('app_dashboard') }}">⌂ Tableau de bord</a><a href="{{ path('app_students') }}">◉ Eleves</a><a href="{{ path('app_classes') }}">▦ Classes</a><a href="{{ path('app_attendance') }}">✓ Presences</a><a href="{{ path('app_evaluations') }}">▤ Notes</a><a href="{{ path('app_report_cards') }}">▤ Bulletins</a><a href="{{ path('app_finance') }}">₣ Finances</a></nav></aside><main><div class="topbar"><span>Administration / Tableau de bord</span><span class="profile">{{ app.user.fullName }} · {{ app.user.role.name }}<a class="logout-link" href="{{ path('app_logout') }}">Deconnexion</a></span></div><div class="content">
+<body><div class="shell"><aside><div class="brand">Ecole Horizon<span>Gestion scolaire</span></div><div class="year">Annee scolaire<strong>2025 - 2026</strong></div>{{ include('partials/_sidebar_nav.html.twig', { active: 'dashboard' }) }}</aside><main><div class="topbar"><span>Administration / Tableau de bord</span><span class="profile">{{ app.user.fullName }} · {{ app.user.role.name }}<a class="logout-link" href="{{ path('app_logout') }}">Deconnexion</a></span></div><div class="content">
 <header>
-    <div><p>Mercredi 19 Aout 2026 · Abidjan</p><h1>Bonjour Adama,</h1><p>Voici la situation de votre etablissement aujourd'hui.</p></div>
+    <div><p>{{ today }} · Abidjan</p><h1>Bonjour {{ app.user.firstName }},</h1><p>Voici la situation de votre etablissement aujourd'hui.</p></div>
     <span class="badge">Symfony 8 · PHP 8.4</span>
 </header>
 <section class="stats">
