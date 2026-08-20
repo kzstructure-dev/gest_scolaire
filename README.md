@@ -535,3 +535,21 @@ Regles appliquees par `App\Service\StudentManager` :
 - un changement de classe met a jour l'inscription et laisse une ligne dans `transfers` ;
 - chaque creation, modification et suppression est tracee dans `audit_logs` avec l'auteur et les valeurs avant/apres ;
 - tous les formulaires sont proteges par un jeton CSRF.
+
+## 28. Module presences et absences
+
+| Route | Methode | Role requis | Action |
+| --- | --- | --- | --- |
+| `/symfony/attendance` | GET | Enseignant, Educateur, Scolarite, Direction | Feuille du jour par classe, compteurs et cumul mensuel |
+| `/symfony/attendance` | POST | Enseignant, Educateur, Scolarite, Direction | Enregistrement ou mise a jour de la feuille du jour |
+| `/symfony/attendance/{id}/justify` | POST | Enseignant, Educateur, Scolarite, Direction | Justification d'une absence avec motif obligatoire |
+
+Regles appliquees par `App\Service\AttendanceManager` :
+
+- seuls les eleves reellement inscrits dans la classe (`registrations.status = 'Validee'`) sont enregistres ;
+- une seule ligne par eleve, classe et date : une nouvelle saisie met a jour la precedente ;
+- les minutes de retard ne sont conservees que pour le statut `Retard` ;
+- l'auteur de la saisie est trace dans `attendance.validated_by` ;
+- une absence peut etre justifiee (`attendance.justified`) avec un motif obligatoire ;
+- le cumul mensuel affiche par eleve les absences, les absences justifiees, les retards et les minutes cumulees ;
+- les formulaires sont proteges par un jeton CSRF et suivent le schema POST / redirection / GET.

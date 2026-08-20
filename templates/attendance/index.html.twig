@@ -19,6 +19,7 @@
         .status { display: inline-block; padding: 5px 8px; border-radius: 12px; background: #e7efed; color: #4a6568; font-size: 11px; }
         .Present { background: #e5f4ed; color: #246d57; } .Absent { background: #fcebe7; color: #a54d3d; } .Retard { background: #fff3dd; color: #9b6a13; } .Dispense, .Sortie { background: #e8eef8; color: #35527a; }
         .actions { display: flex; justify-content: flex-end; margin-top: 16px; } .hint { color: #718186; font-size: 13px; }
+        label.inline { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-weight: normal; } .justify-form { display: flex; gap: 6px; margin-top: 8px; } .justify-form input[name="reason"] { flex: 1; }
         label { display: grid; gap: 6px; color: #718186; font-size: 11px; font-weight: bold; } .row-fields { display: grid; grid-template-columns: 160px 90px 1fr; gap: 8px; }
         @media (max-width: 850px) { aside { width: 190px; } .stats { grid-template-columns: repeat(2, 1fr); } .row-fields { grid-template-columns: 1fr; } }
         @media (max-width: 650px) { .shell { display: block; } aside { width: 100%; padding: 16px; } nav { grid-template-columns: repeat(3, 1fr); } .content { padding: 25px 17px 45px; } .topbar { padding: 0 17px; } .stats { grid-template-columns: 1fr; } header { display: block; } .card { overflow-x: auto; } table { min-width: 820px; } }
@@ -26,12 +27,13 @@
 </head>
 <body><div class="shell"><aside><div class="brand">Ecole Horizon<span>Gestion scolaire</span></div><div class="year">Annee scolaire<strong>2025 - 2026</strong></div>{{ include('partials/_sidebar_nav.html.twig', { active: 'attendance' }) }}</aside><main><div class="topbar"><span>Administration / Vie scolaire / Presences</span><span class="profile">{{ app.user.fullName }} · {{ app.user.role.name }}<a class="logout-link" href="{{ path('app_logout') }}">Deconnexion</a></span></div><div class="content">
 <header><div><p>Vie scolaire · Annee 2025 - 2026</p><h1>Presences et absences</h1><p>Saisie quotidienne par classe : present, absent, retard, dispense ou sortie autorisee.</p></div></header>
-{% if message %}<div class="notice success">{{ message }}</div>{% endif %}{% if error %}<div class="notice error">{{ error }}</div>{% endif %}
+{% for label, messages in app.flashes(['success', 'error']) %}{% for message in messages %}<div class="notice {{ label }}">{{ message }}</div>{% endfor %}{% endfor %}
 <section class="stats">
     <article class="card"><small>Eleves de la liste</small><strong>{{ counts.total }}</strong></article>
     <article class="card"><small>Presents</small><strong>{{ counts.present }}</strong></article>
     <article class="card"><small>Absents</small><strong>{{ counts.absent }}</strong></article>
     <article class="card"><small>Retards</small><strong>{{ counts.late }}</strong></article>
+    <article class="card"><small>Absences non justifiees</small><strong>{{ counts.unjustified }}</strong></article>
 </section>
 <section class="card"><form class="toolbar" method="get"><label>Date<input type="date" name="date" value="{{ date }}"></label><label>Classe<select name="class_id"><option value="0">Choisir une classe</option>{% for class in classes %}<option value="{{ class.id }}" {% if classId == class.id %}selected{% endif %}>{{ class.name }} · {{ class.cycle }}</option>{% endfor %}</select></label><button type="submit">Afficher</button></form></section>
 <section class="card">
@@ -39,6 +41,7 @@
     <p class="hint">Selectionnez une classe et une date pour saisir les presences du jour.</p>
 {% else %}
     <form method="post">
+        <input type="hidden" name="_token" value="{{ csrf_token('attendance_sheet') }}">
         <input type="hidden" name="date" value="{{ date }}">
         <input type="hidden" name="class_id" value="{{ classId }}">
         <table>
@@ -49,7 +52,7 @@
                     <td><strong>{{ student.first_name }} {{ student.last_name }}</strong></td>
                     <td class="cycle">{{ student.cycle }}</td>
                     <td>{{ student.class_name }}</td>
-                    <td><span class="status {{ student.status|replace({'Sortie autorisee': 'Sortie'}) }}">{{ student.status ?: 'Non saisi' }}</span></td>
+                    <td><span class="status {{ student.status|replace({'Sortie autorisee': 'Sortie'}) }}">{{ student.status ?: 'Non saisi' }}</span>{% if student.status == 'Absent' %}<span class="status {{ student.justified ? 'Present' : 'Absent' }}">{{ student.justified ? 'Justifiee' : 'Non justifiee' }}</span>{% endif %}</td>
                     <td>
                         <div class="row-fields">
                             <select name="status[{{ student.id }}]">
@@ -60,6 +63,7 @@
                             <input type="number" min="0" name="minutes_late[{{ student.id }}]" value="{{ student.minutes_late ?: 0 }}" title="Minutes de retard">
                             <input name="reason[{{ student.id }}]" value="{{ student.reason }}" placeholder="Motif">
                         </div>
+                        <label class="inline"><input type="checkbox" name="justified[{{ student.id }}]" value="1" {% if student.justified %}checked{% endif %}> Justifiee</label>
                     </td>
                 </tr>
             {% else %}
@@ -71,4 +75,43 @@
     </form>
 {% endif %}
 </section>
+{% if classId > 0 %}
+{% set pending = students|filter(s => s.status == 'Absent' and not s.justified) %}
+{% if pending is not empty %}
+<section class="card">
+    <h2>Absences a justifier du {{ date }}</h2>
+    {% for student in pending %}
+        <form class="justify-form" method="post" action="{{ path('app_attendance_justify', { id: student.attendance_id }) }}">
+            <input type="hidden" name="_token" value="{{ csrf_token('attendance_justify_' ~ student.attendance_id) }}">
+            <input type="hidden" name="date" value="{{ date }}">
+            <input type="hidden" name="class_id" value="{{ classId }}">
+            <span>{{ student.first_name }} {{ student.last_name }}</span>
+            <input name="reason" value="{{ student.reason }}" placeholder="Motif du justificatif" required>
+            <button class="button" type="submit">Justifier</button>
+        </form>
+    {% endfor %}
+</section>
+{% endif %}
+<section class="card">
+    <h2>Cumul du mois {{ date|slice(0, 7) }}</h2>
+    {% if recap is empty %}
+        <p class="hint">Aucune absence ni retard enregistre ce mois-ci pour cette classe.</p>
+    {% else %}
+        <table>
+            <thead><tr><th>Eleve</th><th>Absences</th><th>Dont justifiees</th><th>Retards</th><th>Minutes de retard</th></tr></thead>
+            <tbody>
+            {% for line in recap %}
+                <tr>
+                    <td><strong>{{ line.first_name }} {{ line.last_name }}</strong></td>
+                    <td>{{ line.absences }}</td>
+                    <td>{{ line.justifiees }}</td>
+                    <td>{{ line.retards }}</td>
+                    <td>{{ line.minutes_retard }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+</section>
+{% endif %}
 </div></main></div></body></html>
