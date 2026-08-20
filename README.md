@@ -517,3 +517,21 @@ Les tests fonctionnels couvrent l'authentification et les droits :
 - page 403 en francais.
 
 `tests/bootstrap.php` recree la base SQLite de test `var/gest_scolaire_test.sqlite` a chaque execution (schema et donnees de reference produits par `config.php`) et y insere les comptes de test declares dans `tests/TestUsers.php`. La base de developpement `data/gest_scolaire.sqlite` n'est jamais touchee. Le chemin de la base peut etre change via la variable d'environnement `GEST_SCOLAIRE_DB`.
+
+## 27. Module eleves et inscriptions
+
+| Route | Methode | Role requis | Action |
+| --- | --- | --- | --- |
+| `/symfony/students` | GET | Scolarite, Direction | Liste, recherche et filtre par cycle |
+| `/symfony/students` | POST | Scolarite, Direction | Inscription d'un eleve dans l'annee courante |
+| `/symfony/students/{id}/edit` | GET / POST | Scolarite, Direction | Modification de la fiche et de la classe |
+| `/symfony/students/{id}/delete` | POST | Scolarite, Direction | Suppression de l'eleve et de son inscription |
+
+Regles appliquees par `App\Service\StudentManager` :
+
+- prenoms, nom et classe obligatoires, classe existante, telephone au format ivoirien tolerant, statut parmi `Inscrit`, `A verifier`, `Transfere`, `Radie` ;
+- le cycle est deduit du nom de la classe (`CP`, `CE`, `CM` => Primaire, sinon Secondaire) ;
+- l'inscription est creee avec un numero `INS-00042` et le statut `Validee` ;
+- un changement de classe met a jour l'inscription et laisse une ligne dans `transfers` ;
+- chaque creation, modification et suppression est tracee dans `audit_logs` avec l'auteur et les valeurs avant/apres ;
+- tous les formulaires sont proteges par un jeton CSRF.
