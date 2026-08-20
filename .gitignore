@@ -1,0 +1,6 @@
+data/*.sqlite
+data/*.sqlite-journal
+/composer.phar
+/var/
+/vendor/
+/.env.local

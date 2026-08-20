@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Ecole Horizon | Presences</title>
+    <style>
+        :root { font-family: Arial, sans-serif; color: #17343a; background: #f4f8f7; } * { box-sizing: border-box; }
+        body { margin: 0; } .shell { display: flex; min-height: 100vh; } aside { width: 230px; background: #17343a; color: #d9e6e3; padding: 26px 16px; flex-shrink: 0; }
+        .brand { color: #fff; font-weight: bold; font-size: 16px; padding: 0 10px 28px; } .brand span { display: block; color: #9fb4b3; font-size: 11px; font-weight: normal; margin-top: 5px; }
+        .year { border: 1px solid #33555a; border-radius: 7px; padding: 11px; margin-bottom: 22px; font-size: 11px; color: #9fb4b3; } .year strong { display: block; color: #fff; margin-top: 5px; }
+        nav { display: grid; gap: 4px; } nav a { color: #a9c0be; padding: 11px; border-radius: 6px; text-decoration: none; font-size: 13px; } nav a.active, nav a:hover { color: #fff; background: #246461; }
+        main { flex: 1; min-width: 0; } .topbar { height: 70px; background: #fff; border-bottom: 1px solid #e4eceb; padding: 0 38px; display: flex; justify-content: space-between; align-items: center; color: #718186; font-size: 12px; } .profile { color: #17343a; font-weight: bold; }
+        .content { max-width: 1320px; margin: 0 auto; padding: 34px 38px 60px; } header { display: flex; justify-content: space-between; align-items: end; margin-bottom: 24px; } h1 { margin: 0; font-size: 30px; } p { color: #718186; }
+        .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 18px; } .card { background: #fff; border: 1px solid #e4eceb; border-radius: 10px; padding: 18px; margin-bottom: 18px; } .card small { color: #718186; } .card strong { display: block; font-size: 28px; margin-top: 8px; }
+        .notice { padding: 11px 14px; border-radius: 6px; margin-bottom: 16px; font-size: 13px; } .success { background: #e5f4ed; color: #246d57; } .error { background: #fcebe7; color: #a54d3d; }
+        .toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; } input, select, button { border: 1px solid #dce8e6; border-radius: 6px; padding: 11px 14px; background: #fff; color: #17343a; } button, .button { background: #0f7771; border: 0; color: #fff; font-weight: bold; cursor: pointer; }
+        table { width: 100%; border-collapse: collapse; } th, td { padding: 13px 10px; border-bottom: 1px solid #edf2f1; text-align: left; font-size: 13px; } th { color: #718186; font-size: 10px; text-transform: uppercase; } .cycle { color: #0f7771; font-weight: bold; }
+        .status { display: inline-block; padding: 5px 8px; border-radius: 12px; background: #e7efed; color: #4a6568; font-size: 11px; }
+        .Present { background: #e5f4ed; color: #246d57; } .Absent { background: #fcebe7; color: #a54d3d; } .Retard { background: #fff3dd; color: #9b6a13; } .Dispense, .Sortie { background: #e8eef8; color: #35527a; }
+        .actions { display: flex; justify-content: flex-end; margin-top: 16px; } .hint { color: #718186; font-size: 13px; }
+        label { display: grid; gap: 6px; color: #718186; font-size: 11px; font-weight: bold; } .row-fields { display: grid; grid-template-columns: 160px 90px 1fr; gap: 8px; }
+        @media (max-width: 850px) { aside { width: 190px; } .stats { grid-template-columns: repeat(2, 1fr); } .row-fields { grid-template-columns: 1fr; } }
+        @media (max-width: 650px) { .shell { display: block; } aside { width: 100%; padding: 16px; } nav { grid-template-columns: repeat(3, 1fr); } .content { padding: 25px 17px 45px; } .topbar { padding: 0 17px; } .stats { grid-template-columns: 1fr; } header { display: block; } .card { overflow-x: auto; } table { min-width: 820px; } }
+    </style>
+</head>
+<body><div class="shell"><aside><div class="brand">Ecole Horizon<span>Gestion scolaire</span></div><div class="year">Annee scolaire<strong>2025 - 2026</strong></div><nav><a href="{{ path('app_dashboard') }}">⌂ Tableau de bord</a><a href="{{ path('app_students') }}">◉ Eleves</a><a href="{{ path('app_classes') }}">▦ Classes</a><a class="active" href="{{ path('app_attendance') }}">✓ Presences</a><a href="{{ path('app_evaluations') }}">▤ Notes</a><a href="{{ path('app_report_cards') }}">▤ Bulletins</a><a href="{{ path('app_finance') }}">₣ Finances</a></nav></aside><main><div class="topbar"><span>Administration / Vie scolaire / Presences</span><span class="profile">Adama Kone · Directeur</span></div><div class="content">
+<header><div><p>Vie scolaire · Annee 2025 - 2026</p><h1>Presences et absences</h1><p>Saisie quotidienne par classe : present, absent, retard, dispense ou sortie autorisee.</p></div></header>
+{% if message %}<div class="notice success">{{ message }}</div>{% endif %}{% if error %}<div class="notice error">{{ error }}</div>{% endif %}
+<section class="stats">
+    <article class="card"><small>Eleves de la liste</small><strong>{{ counts.total }}</strong></article>
+    <article class="card"><small>Presents</small><strong>{{ counts.present }}</strong></article>
+    <article class="card"><small>Absents</small><strong>{{ counts.absent }}</strong></article>
+    <article class="card"><small>Retards</small><strong>{{ counts.late }}</strong></article>
+</section>
+<section class="card"><form class="toolbar" method="get"><label>Date<input type="date" name="date" value="{{ date }}"></label><label>Classe<select name="class_id"><option value="0">Choisir une classe</option>{% for class in classes %}<option value="{{ class.id }}" {% if classId == class.id %}selected{% endif %}>{{ class.name }} · {{ class.cycle }}</option>{% endfor %}</select></label><button type="submit">Afficher</button></form></section>
+<section class="card">
+{% if classId < 1 %}
+    <p class="hint">Selectionnez une classe et une date pour saisir les presences du jour.</p>
+{% else %}
+    <form method="post">
+        <input type="hidden" name="date" value="{{ date }}">
+        <input type="hidden" name="class_id" value="{{ classId }}">
+        <table>
+            <thead><tr><th>Eleve</th><th>Cycle</th><th>Classe</th><th>Etat actuel</th><th>Saisie</th></tr></thead>
+            <tbody>
+            {% for student in students %}
+                <tr>
+                    <td><strong>{{ student.first_name }} {{ student.last_name }}</strong></td>
+                    <td class="cycle">{{ student.cycle }}</td>
+                    <td>{{ student.class_name }}</td>
+                    <td><span class="status {{ student.status|replace({'Sortie autorisee': 'Sortie'}) }}">{{ student.status ?: 'Non saisi' }}</span></td>
+                    <td>
+                        <div class="row-fields">
+                            <select name="status[{{ student.id }}]">
+                                {% for option in statuses %}
+                                    <option value="{{ option }}" {% if student.status == option or (student.status is empty and option == 'Present') %}selected{% endif %}>{{ option }}</option>
+                                {% endfor %}
+                            </select>
+                            <input type="number" min="0" name="minutes_late[{{ student.id }}]" value="{{ student.minutes_late ?: 0 }}" title="Minutes de retard">
+                            <input name="reason[{{ student.id }}]" value="{{ student.reason }}" placeholder="Motif">
+                        </div>
+                    </td>
+                </tr>
+            {% else %}
+                <tr><td colspan="5">Aucun eleve inscrit dans cette classe.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% if students|length > 0 %}<div class="actions"><button class="button" type="submit">Enregistrer la feuille du jour</button></div>{% endif %}
+    </form>
+{% endif %}
+</section>
+</div></main></div></body></html>

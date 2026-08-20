@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Recu {{ receipt.receipt_number }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; color: #17343a; background: #f4f8f7; margin: 0; padding: 32px; }
+        .sheet { max-width: 640px; margin: 0 auto; background: #fff; border: 1px solid #e4eceb; border-radius: 10px; padding: 36px; }
+        h1 { margin: 0; } p { color: #718186; } .meta { display: flex; justify-content: space-between; margin: 24px 0; }
+        table { width: 100%; border-collapse: collapse; margin: 18px 0 28px; } th, td { padding: 10px 0; border-bottom: 1px solid #edf2f1; text-align: left; }
+        .total { font-size: 22px; } .actions { display: flex; gap: 10px; } a, button { background: #0f7771; color: #fff; border: 0; border-radius: 6px; padding: 10px 14px; font-weight: bold; text-decoration: none; cursor: pointer; }
+        .ghost { background: #17343a; } @media print { .actions { display: none; } body { background: #fff; padding: 0; } .sheet { border: 0; } }
+    </style>
+</head>
+<body>
+<article class="sheet">
+    <p>Ecole Horizon · Cocody, Abidjan · 2025 - 2026</p>
+    <h1>Recu de paiement</h1>
+    <div class="meta"><div><strong>{{ receipt.receipt_number }}</strong><br>Facture {{ receipt.invoice_number }}</div><div>{{ receipt.issued_at }}</div></div>
+    <p>Recu de <strong>{{ receipt.last_name }} {{ receipt.first_name }}</strong> ({{ receipt.class_name }}) pour {{ receipt.tariff_label }}.</p>
+    <table>
+        <tr><th>Mode</th><td>{{ receipt.method }}</td></tr>
+        <tr><th>Date de paiement</th><td>{{ receipt.payment_date }}</td></tr>
+        <tr><th>Montant de la facture</th><td>{{ receipt.invoice_amount|number_format(0, ',', ' ') }} F CFA</td></tr>
+        <tr class="total"><th>Montant encaisse</th><td>{{ receipt.amount|number_format(0, ',', ' ') }} F CFA</td></tr>
+    </table>
+    <p>Document genere par l'application de gestion scolaire. Conservez ce recu.</p>
+    <div class="actions"><button type="button" onclick="window.print()">Imprimer</button><a class="ghost" href="{{ path('app_finance') }}">Retour caisse</a></div>
+</article>
+</body>
+</html>

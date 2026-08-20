@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Bulletin {{ card.last_name }} {{ card.first_name }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; color: #17343a; background: #f4f8f7; margin: 0; padding: 32px; }
+        .sheet { max-width: 780px; margin: 0 auto; background: #fff; border: 1px solid #e4eceb; border-radius: 10px; padding: 36px; }
+        h1 { margin: 8px 0 0; } p { color: #718186; } .meta { display: flex; justify-content: space-between; gap: 16px; margin: 22px 0; }
+        table { width: 100%; border-collapse: collapse; margin: 18px 0; } th, td { padding: 10px 8px; border-bottom: 1px solid #edf2f1; text-align: left; font-size: 14px; }
+        th { color: #718186; font-size: 11px; text-transform: uppercase; } .total { font-weight: bold; font-size: 16px; }
+        .actions { display: flex; gap: 10px; } a, button { background: #0f7771; color: #fff; border: 0; border-radius: 6px; padding: 10px 14px; font-weight: bold; text-decoration: none; cursor: pointer; }
+        .ghost { background: #17343a; } @media print { .actions { display: none; } body { background: #fff; padding: 0; } .sheet { border: 0; } }
+    </style>
+</head>
+<body>
+<article class="sheet">
+    <p>Ecole Horizon · Cocody, Abidjan · Annee scolaire 2025 - 2026</p>
+    <h1>Bulletin de notes</h1>
+    <div class="meta">
+        <div><strong>{{ card.last_name }} {{ card.first_name }}</strong><br>{{ card.registered_class ?: card.class_name }} · {{ card.period_name }}</div>
+        <div>Rang {{ card.rank ?: '-' }}<br>Absences : {{ absences }}</div>
+    </div>
+    <table>
+        <thead><tr><th>Matiere</th><th>Coefficient</th><th>Nb notes</th><th>Moyenne / 20</th></tr></thead>
+        <tbody>
+        {% for subject in subjects %}
+            <tr><td>{{ subject.name }}</td><td>{{ subject.coefficient }}</td><td>{{ subject.evaluations }}</td><td>{{ subject.average }}</td></tr>
+        {% else %}
+            <tr><td colspan="4">Aucune note saisie pour cette periode.</td></tr>
+        {% endfor %}
+        <tr class="total"><td colspan="3">Moyenne generale</td><td>{{ card.average is not null ? card.average : '-' }}</td></tr>
+        </tbody>
+    </table>
+    <p><strong>Appreciation :</strong> {{ card.appreciation }}</p>
+    <p>Document edite le {{ card.published_at ?: 'now'|date('Y-m-d H:i') }}.</p>
+    <div class="actions"><button type="button" onclick="window.print()">Imprimer</button><a class="ghost" href="{{ path('app_report_cards') }}">Retour</a></div>
+</article>
+</body>
+</html>
