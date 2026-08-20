@@ -4,3 +4,4 @@ data/*.sqlite-journal
 /var/
 /vendor/
 /.env.local
+/.env.*.local

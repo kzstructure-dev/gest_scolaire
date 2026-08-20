@@ -466,3 +466,36 @@ Commandes de controle :
 php bin/console doctrine:migrations:status
 php bin/console doctrine:migrations:migrate --no-interaction
 ```
+
+## 25. Authentification et droits
+
+L'application Symfony est maintenant protegee par le composant Security. Toutes les routes exigent une session authentifiee, seule `/login` est publique.
+
+- `src/Entity/User.php` : entite mappee sur la table `users`, elle implemente `UserInterface` et `PasswordAuthenticatedUserInterface` et lit le hachage dans `password_hash` ;
+- `src/Entity/Role.php` : role metier de la table `roles`, converti en role Symfony par `getSecurityRole()`, par exemple `Scolarite` devient `ROLE_SCOLARITE` ;
+- `src/Controller/SecurityController.php` et `templates/security/login.html.twig` : formulaire de connexion avec jeton CSRF et option « rester connecte » ;
+- `src/EventListener/LoginAuditListener.php` : mise a jour de `users.last_login_at` et journalisation de la connexion dans `audit_logs` ;
+- `config/packages/security.yaml` : fournisseur Doctrine, hierarchie des roles et controle d'acces par module.
+
+### Hierarchie des roles
+
+`ROLE_ADMINISTRATEUR` herite de `ROLE_DIRECTION`, qui herite de `ROLE_SCOLARITE`, `ROLE_ENSEIGNANT`, `ROLE_EDUCATEUR` et `ROLE_COMPTABLE`.
+
+| Module | Roles autorises |
+| --- | --- |
+| `/symfony/students` | Scolarite, Direction |
+| `/symfony/classes` | Scolarite, Enseignant, Direction |
+| `/symfony/attendance` | Enseignant, Educateur, Scolarite, Direction |
+| `/symfony/evaluations` | Enseignant, Scolarite, Direction |
+| `/symfony/report-cards` | Enseignant, Scolarite, Direction |
+| `/symfony/finance` | Comptable, Direction |
+
+### Creer un compte
+
+```powershell
+php bin/console app:user:create admin@ecole-horizon.ci "MotDePasse" Administrateur Adama Kone
+```
+
+Les mots de passe sont haches par Symfony, aucun mot de passe en clair n'est stocke. Le nom du role doit exister dans la table `roles`.
+
+La page PHP historique `index.php` reste hors du pare-feu Symfony : elle doit etre retiree ou passee derriere le pare-feu avant toute mise en production.

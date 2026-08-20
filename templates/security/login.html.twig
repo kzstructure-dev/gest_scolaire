@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Ecole Horizon | Connexion</title>
+    <style>
+        :root { font-family: Arial, sans-serif; color: #17343a; } * { box-sizing: border-box; }
+        body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #17343a; padding: 24px; }
+        .card { width: 100%; max-width: 380px; background: #fff; border-radius: 12px; padding: 32px; }
+        .brand { font-weight: bold; font-size: 18px; } .brand span { display: block; color: #718186; font-size: 12px; font-weight: normal; margin-top: 5px; }
+        h1 { font-size: 20px; margin: 26px 0 6px; } p.hint { color: #718186; font-size: 13px; margin: 0 0 22px; }
+        label { display: grid; gap: 6px; color: #718186; font-size: 11px; font-weight: bold; margin-bottom: 14px; }
+        input { border: 1px solid #dce8e6; border-radius: 6px; padding: 11px; font-size: 14px; color: #17343a; }
+        .remember { display: flex; align-items: center; gap: 8px; color: #718186; font-size: 12px; margin-bottom: 18px; }
+        .button { width: 100%; border: 0; background: #0f7771; color: #fff; border-radius: 6px; padding: 12px; font-weight: bold; font-size: 14px; cursor: pointer; }
+        .error { background: #fcebe7; color: #a54d3d; padding: 11px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 16px; }
+    </style>
+</head>
+<body>
+<section class="card">
+    <div class="brand">Ecole Horizon<span>Gestion scolaire</span></div>
+    <h1>Connexion</h1>
+    <p class="hint">Annee scolaire 2025 - 2026</p>
+
+    {% if error %}<div class="error">{{ error.messageKey|trans(error.messageData, 'security') }}</div>{% endif %}
+
+    <form method="post">
+        <label>Adresse e-mail
+            <input type="email" name="_username" value="{{ last_username }}" autocomplete="email" required autofocus>
+        </label>
+        <label>Mot de passe
+            <input type="password" name="_password" autocomplete="current-password" required>
+        </label>
+        <div class="remember">
+            <input type="checkbox" id="remember_me" name="_remember_me">
+            <label for="remember_me" style="margin: 0;">Rester connecte sur cet appareil</label>
+        </div>
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+        <button class="button" type="submit">Se connecter</button>
+    </form>
+</section>
+</body>
+</html>
