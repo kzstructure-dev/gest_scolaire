@@ -41,6 +41,8 @@ security:
         - { path: ^/symfony/evaluations, roles: [ROLE_ENSEIGNANT, ROLE_SCOLARITE, ROLE_DIRECTION] }
         - { path: ^/symfony/attendance, roles: [ROLE_ENSEIGNANT, ROLE_EDUCATEUR, ROLE_SCOLARITE, ROLE_DIRECTION] }
         - { path: ^/symfony/report-cards, roles: [ROLE_ENSEIGNANT, ROLE_SCOLARITE, ROLE_DIRECTION] }
+        - { path: ^/symfony/teachers, roles: [ROLE_SCOLARITE, ROLE_DIRECTION] }
+        - { path: ^/symfony/timetable, roles: [ROLE_ENSEIGNANT, ROLE_SCOLARITE, ROLE_DIRECTION] }
         - { path: ^/symfony/students, roles: [ROLE_SCOLARITE, ROLE_DIRECTION] }
         - { path: ^/symfony/classes, roles: [ROLE_SCOLARITE, ROLE_ENSEIGNANT, ROLE_DIRECTION] }
         - { path: ^/, roles: ROLE_USER }

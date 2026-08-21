@@ -9,7 +9,11 @@
     {% if is_granted('ROLE_ENSEIGNANT') or is_granted('ROLE_EDUCATEUR') or is_granted('ROLE_SCOLARITE') or is_granted('ROLE_DIRECTION') %}
         <a class="{{ active == 'attendance' ? 'active' : '' }}" href="{{ path('app_attendance') }}">✓ Presences</a>
     {% endif %}
+    {% if is_granted('ROLE_SCOLARITE') or is_granted('ROLE_DIRECTION') %}
+        <a class="{{ active == 'teachers' ? 'active' : '' }}" href="{{ path('app_teachers') }}">✎ Enseignants</a>
+    {% endif %}
     {% if is_granted('ROLE_ENSEIGNANT') or is_granted('ROLE_SCOLARITE') or is_granted('ROLE_DIRECTION') %}
+        <a class="{{ active == 'timetable' ? 'active' : '' }}" href="{{ path('app_timetable') }}">◷ Emploi du temps</a>
         <a class="{{ active == 'evaluations' ? 'active' : '' }}" href="{{ path('app_evaluations') }}">▤ Notes</a>
         <a class="{{ active == 'report_cards' ? 'active' : '' }}" href="{{ path('app_report_cards') }}">▤ Bulletins</a>
     {% endif %}

@@ -605,3 +605,23 @@ Regles appliquees par `App\Service\FinanceManager` :
 - le statut de la facture est recalcule apres chaque operation : `A payer`, `Partiel` ou `Payee` ;
 - une annulation exige un motif, conserve la ligne de paiement au statut `Annule` et remet le montant au reste a payer ;
 - les impayes sont recapitules par eleve ; les formulaires sont proteges par un jeton CSRF et suivent le schema POST / redirection / GET.
+
+## 31. Module enseignants et emploi du temps
+
+| Route | Methode | Role requis | Action |
+| --- | --- | --- | --- |
+| `/symfony/teachers` | GET | Scolarite, Direction, Administrateur | Liste des enseignants, charge horaire et affectations filtrables |
+| `/symfony/teachers` | POST | Scolarite, Direction, Administrateur | `action=create`, `action=assign` ou `action=unassign` |
+| `/symfony/timetable` | GET | Enseignant, Scolarite, Direction, Administrateur | Emploi du temps hebdomadaire d'une classe |
+| `/symfony/timetable` | POST | Enseignant, Scolarite, Direction, Administrateur | `action=schedule` ou `action=remove` |
+
+Regles appliquees par `App\Service\TeacherManager` :
+
+- la creation d'un enseignant cree la fiche `staff` (type Enseignant) et la fiche `teachers` dans une seule transaction ; le matricule est genere (`ENS-0001`) s'il n'est pas fourni et reste unique ;
+- l'email, s'il est renseigne, doit etre valide ;
+- une matiere n'est confiee qu'a un seul enseignant par classe ; reaffecter le meme trio enseignant / classe / matiere met simplement a jour le volume horaire ;
+- la charge hebdomadaire d'un enseignant est plafonnee a 30 heures, tous cours confondus ;
+- retirer une affectation supprime aussi les creneaux correspondants de l'emploi du temps ;
+- un creneau exige une affectation existante, un jour du lundi au samedi et des heures `HH:MM` avec une fin posterieure au debut ;
+- un creneau est refuse s'il chevauche un autre creneau du meme enseignant, de la meme classe ou de la meme salle ; deux creneaux jointifs (10:00-12:00 apres 08:00-10:00) sont acceptes ;
+- les formulaires sont proteges par un jeton CSRF et suivent le schema POST / redirection / GET.
