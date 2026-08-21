@@ -496,6 +496,10 @@ L'application Symfony est maintenant protegee par le composant Security. Toutes 
 
 La base SQLite n'est pas versionnee : il faut la creer avant de pouvoir se connecter.
 
+Sous Windows, double-cliquez sur `demarrer-windows.bat` : le script installe Composer si besoin, cree la base, demande l'email et le mot de passe de l'administrateur puis lance le serveur sur `http://127.0.0.1:8000`.
+
+Manuellement :
+
 ```powershell
 composer install
 php bin/console app:db:init
