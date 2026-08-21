@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use Doctrine\DBAL\Connection;
+use App\Entity\User;
+use App\Service\EvaluationManager;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -12,173 +13,114 @@ use Symfony\Component\Routing\Attribute\Route;
 
 final class EvaluationController extends AbstractController
 {
-    private const TYPES = ['Interrogation', 'Devoir', 'Composition', 'Examen blanc', 'Projet', 'Oral', 'Pratique', 'Examen officiel'];
+    public function __construct(
+        private readonly EvaluationManager $evaluations
+    ) {
+    }
 
     #[Route('/symfony/evaluations', name: 'app_evaluations', methods: ['GET', 'POST'])]
-    public function index(Request $request, Connection $connection): Response
+    public function index(Request $request): Response
     {
-        $message = null;
-        $error = null;
         $classId = (int) $request->query->get('class_id', 0);
 
         if ($request->isMethod('POST')) {
-            $title = trim((string) $request->request->get('title'));
-            $classId = (int) $request->request->get('class_id');
-            $subjectId = (int) $request->request->get('subject_id');
-            $periodId = (int) $request->request->get('period_id');
-            $type = (string) $request->request->get('evaluation_type', 'Devoir');
-            $date = (string) $request->request->get('evaluation_date', date('Y-m-d'));
-            $scale = (float) $request->request->get('scale', 20);
-            $coefficient = (float) $request->request->get('coefficient', 1);
+            if (!$this->isCsrfTokenValid('evaluation_create', (string) $request->request->get('_token'))) {
+                $this->addFlash('error', 'Session expiree, merci de recommencer.');
 
-            if ($title === '' || $classId < 1 || $subjectId < 1 || $periodId < 1) {
-                $error = 'Le titre, la classe, la matiere et la periode sont obligatoires.';
-            } elseif (!in_array($type, self::TYPES, true)) {
-                $error = 'Type d\'evaluation invalide.';
-            } elseif ($scale <= 0 || $coefficient <= 0) {
-                $error = 'Le bareme et le coefficient doivent etre superieurs a zero.';
-            } elseif (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
-                $error = 'La date de l\'evaluation est invalide.';
-            } else {
-                $connection->insert('evaluations', [
-                    'class_id' => $classId,
-                    'subject_id' => $subjectId,
-                    'period_id' => $periodId,
-                    'title' => $title,
-                    'evaluation_type' => $type,
-                    'evaluation_date' => $date,
-                    'scale' => $scale,
-                    'coefficient' => $coefficient,
-                    'status' => 'Saisie',
-                ]);
-                $evaluationId = (int) $connection->lastInsertId();
+                return $this->redirectToRoute('app_evaluations');
+            }
+
+            try {
+                $evaluationId = $this->evaluations->create($request->request->all());
 
                 return $this->redirectToRoute('app_evaluation_grades', ['id' => $evaluationId]);
+            } catch (\InvalidArgumentException $exception) {
+                $this->addFlash('error', $exception->getMessage());
+            } catch (\Throwable) {
+                $this->addFlash('error', 'Impossible de creer cette evaluation.');
             }
+
+            return $this->redirectToRoute('app_evaluations', ['class_id' => (int) $request->request->get('class_id', 0)]);
         }
 
-        $parameters = [];
-        $where = '';
-        if ($classId > 0) {
-            $where = 'WHERE e.class_id = :class_id';
-            $parameters['class_id'] = $classId;
-        }
-
-        $evaluations = $connection->fetchAllAssociative(<<<SQL
-            SELECT e.id, e.title, e.evaluation_type, e.evaluation_date, e.scale, e.coefficient, e.status,
-                   c.name AS class_name, s.name AS subject_name, p.name AS period_name,
-                   COUNT(g.id) AS grade_count
-            FROM evaluations e
-            INNER JOIN classes c ON c.id = e.class_id
-            INNER JOIN subjects s ON s.id = e.subject_id
-            LEFT JOIN periods p ON p.id = e.period_id
-            LEFT JOIN grades g ON g.evaluation_id = e.id AND g.value IS NOT NULL
-            $where
-            GROUP BY e.id, e.title, e.evaluation_type, e.evaluation_date, e.scale, e.coefficient, e.status, c.name, s.name, p.name
-            ORDER BY e.evaluation_date DESC, e.id DESC
-        SQL, $parameters);
+        $evaluations = $this->evaluations->listForClass($classId);
 
         return $this->render('evaluations/index.html.twig', [
             'evaluations' => $evaluations,
-            'classes' => $connection->fetchAllAssociative('SELECT c.id, c.name, cy.name AS cycle FROM classes c JOIN levels l ON l.id = c.level_id JOIN cycles cy ON cy.id = l.cycle_id ORDER BY l.sort_order, c.name'),
-            'subjects' => $connection->fetchAllAssociative('SELECT id, name FROM subjects WHERE active = 1 ORDER BY name'),
-            'periods' => $connection->fetchAllAssociative('SELECT id, name FROM periods WHERE school_year_id = 1 ORDER BY start_date'),
-            'types' => self::TYPES,
+            'classes' => $this->evaluations->classes(),
+            'subjects' => $this->evaluations->subjects(),
+            'periods' => $this->evaluations->periods(),
+            'types' => EvaluationManager::TYPES,
             'classId' => $classId,
-            'message' => $message,
-            'error' => $error,
             'total' => count($evaluations),
         ]);
     }
 
-    #[Route('/symfony/evaluations/{id}', name: 'app_evaluation_grades', requirements: ['id' => '\\d+'], methods: ['GET', 'POST'])]
-    public function grades(int $id, Request $request, Connection $connection): Response
+    #[Route('/symfony/evaluations/{id}', name: 'app_evaluation_grades', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
+    public function grades(int $id, Request $request): Response
     {
-        $evaluation = $connection->fetchAssociative(<<<SQL
-            SELECT e.*, c.name AS class_name, s.name AS subject_name, p.name AS period_name
-            FROM evaluations e
-            INNER JOIN classes c ON c.id = e.class_id
-            INNER JOIN subjects s ON s.id = e.subject_id
-            LEFT JOIN periods p ON p.id = e.period_id
-            WHERE e.id = ?
-        SQL, [$id]);
-
-        if ($evaluation === false) {
-            throw $this->createNotFoundException('Evaluation introuvable.');
+        try {
+            $evaluation = $this->evaluations->find($id);
+        } catch (\InvalidArgumentException $exception) {
+            throw $this->createNotFoundException($exception->getMessage());
         }
-
-        $message = null;
-        $error = null;
-        $scale = (float) $evaluation['scale'];
 
         if ($request->isMethod('POST')) {
-            $values = $request->request->all('value');
-            $appreciations = $request->request->all('appreciation');
-            $connection->beginTransaction();
-            try {
-                foreach ($values as $studentId => $rawValue) {
-                    $studentId = (int) $studentId;
-                    $rawValue = trim((string) $rawValue);
-                    $appreciation = trim((string) ($appreciations[$studentId] ?? ''));
-                    if ($studentId < 1) {
-                        continue;
-                    }
-                    if ($rawValue === '') {
-                        $connection->executeStatement('DELETE FROM grades WHERE evaluation_id = ? AND student_id = ?', [$id, $studentId]);
-                        continue;
-                    }
-                    if (!is_numeric($rawValue)) {
-                        throw new \InvalidArgumentException('Note invalide.');
-                    }
-                    $value = (float) $rawValue;
-                    if ($value < 0 || $value > $scale) {
-                        throw new \InvalidArgumentException('Chaque note doit etre comprise entre 0 et ' . $scale . '.');
-                    }
-                    $existing = $connection->fetchOne('SELECT id FROM grades WHERE evaluation_id = ? AND student_id = ?', [$id, $studentId]);
-                    $payload = ['value' => $value, 'appreciation' => $appreciation, 'status' => 'Saisie'];
-                    if ($existing !== false) {
-                        $connection->update('grades', $payload, ['id' => $existing]);
-                    } else {
-                        $connection->insert('grades', $payload + ['evaluation_id' => $id, 'student_id' => $studentId]);
-                    }
+            if (!$this->isCsrfTokenValid('evaluation_grades_' . $id, (string) $request->request->get('_token'))) {
+                $this->addFlash('error', 'Session expiree, merci de recommencer.');
+            } else {
+                try {
+                    $saved = $this->evaluations->saveGrades(
+                        $id,
+                        $request->request->all('value'),
+                        $request->request->all('appreciation'),
+                        $this->currentUser()
+                    );
+                    $this->addFlash('success', sprintf('%d note(s) enregistree(s).', $saved));
+                } catch (\InvalidArgumentException $exception) {
+                    $this->addFlash('error', $exception->getMessage());
+                } catch (\Throwable) {
+                    $this->addFlash('error', 'Impossible d\'enregistrer les notes.');
                 }
-                $connection->commit();
-                $message = 'Notes enregistrees.';
+            }
+
+            return $this->redirectToRoute('app_evaluation_grades', ['id' => $id]);
+        }
+
+        $sheet = $this->evaluations->gradeSheet($id, (int) $evaluation['class_id']);
+
+        return $this->render('evaluations/grades.html.twig', array_merge(
+            $this->evaluations->statistics($sheet, (float) $evaluation['scale']),
+            [
+                'evaluation' => $evaluation,
+                'students' => $sheet,
+            ]
+        ));
+    }
+
+    #[Route('/symfony/evaluations/{id}/delete', name: 'app_evaluation_delete', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function delete(int $id, Request $request): Response
+    {
+        if (!$this->isCsrfTokenValid('evaluation_delete_' . $id, (string) $request->request->get('_token'))) {
+            $this->addFlash('error', 'Session expiree, merci de recommencer.');
+        } else {
+            try {
+                $this->evaluations->delete($id);
+                $this->addFlash('success', 'Evaluation supprimee ainsi que ses notes.');
             } catch (\InvalidArgumentException $exception) {
-                $connection->rollBack();
-                $error = $exception->getMessage();
+                $this->addFlash('error', $exception->getMessage());
             } catch (\Throwable) {
-                $connection->rollBack();
-                $error = 'Impossible d\'enregistrer les notes.';
+                $this->addFlash('error', 'Impossible de supprimer cette evaluation.');
             }
         }
 
-        $students = $connection->fetchAllAssociative(<<<SQL
-            SELECT s.id, s.first_name, s.last_name, g.value, g.appreciation
-            FROM students s
-            INNER JOIN registrations r ON r.student_id = s.id AND r.school_year_id = 1 AND r.status = 'Validee' AND r.class_id = :class_id
-            LEFT JOIN grades g ON g.student_id = s.id AND g.evaluation_id = :evaluation_id
-            ORDER BY s.last_name, s.first_name
-        SQL, ['class_id' => $evaluation['class_id'], 'evaluation_id' => $id]);
+        return $this->redirectToRoute('app_evaluations', ['class_id' => (int) $request->request->get('class_id', 0)]);
+    }
 
-        $entered = 0;
-        $sumNormalized = 0.0;
-        foreach ($students as $student) {
-            if ($student['value'] === null || $student['value'] === '') {
-                continue;
-            }
-            ++$entered;
-            $sumNormalized += ((float) $student['value'] / $scale) * 20;
-        }
+    private function currentUser(): ?User
+    {
+        $user = $this->getUser();
 
-        return $this->render('evaluations/grades.html.twig', [
-            'evaluation' => $evaluation,
-            'students' => $students,
-            'message' => $message,
-            'error' => $error,
-            'entered' => $entered,
-            'missing' => count($students) - $entered,
-            'average' => $entered > 0 ? round($sumNormalized / $entered, 2) : null,
-        ]);
+        return $user instanceof User ? $user : null;
     }
 }

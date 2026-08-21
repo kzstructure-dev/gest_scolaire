@@ -553,3 +553,36 @@ Regles appliquees par `App\Service\AttendanceManager` :
 - une absence peut etre justifiee (`attendance.justified`) avec un motif obligatoire ;
 - le cumul mensuel affiche par eleve les absences, les absences justifiees, les retards et les minutes cumulees ;
 - les formulaires sont proteges par un jeton CSRF et suivent le schema POST / redirection / GET.
+
+## 29. Module notes et bulletins
+
+| Route | Methode | Role requis | Action |
+| --- | --- | --- | --- |
+| `/symfony/evaluations` | GET | Enseignant, Direction, Scolarite | Liste des evaluations, filtre par classe |
+| `/symfony/evaluations` | POST | Enseignant, Direction, Scolarite | Creation d'une evaluation puis redirection vers la saisie |
+| `/symfony/evaluations/{id}` | GET / POST | Enseignant, Direction, Scolarite | Feuille de notes de la classe et statistiques |
+| `/symfony/evaluations/{id}/delete` | POST | Enseignant, Direction, Scolarite | Suppression de l'evaluation et de ses notes |
+| `/symfony/report-cards` | GET | Enseignant, Direction, Scolarite | Bulletins filtres par classe et periode |
+| `/symfony/report-cards` | POST | Enseignant, Direction, Scolarite | Calcul (`action` absent) ou publication (`action=publish`) |
+| `/symfony/report-cards/{id}` | GET | Enseignant, Direction, Scolarite | Detail d'un bulletin, moyennes par matiere et absences |
+
+Regles appliquees par `App\Service\EvaluationManager` :
+
+- titre, classe, matiere et periode obligatoires et existants, type parmi les huit types officiels, date au format `AAAA-MM-JJ` ;
+- bareme et coefficient strictement positifs ;
+- seuls les eleves inscrits dans la classe de l'evaluation peuvent recevoir une note ;
+- une note doit etre numerique et comprise entre 0 et le bareme, une seule note par eleve et evaluation ;
+- un champ vide supprime la note existante ;
+- l'auteur de la saisie est trace dans `grades.validated_by` ;
+- l'evaluation passe a `Complete` quand toutes les notes attendues sont saisies, sinon `Saisie`.
+
+Regles appliquees par `App\Service\ReportCardManager` :
+
+- chaque note est ramenee sur 20 (`note / bareme * 20`) puis ponderee par le coefficient de l'evaluation pour obtenir la moyenne de la matiere ;
+- la moyenne generale pondere les moyennes par matiere avec le coefficient de la matiere ;
+- le rang est calcule par classe et periode, les ex aequo partagent le meme rang, un eleve sans note n'est pas classe ;
+- appreciation : Excellent (>= 16), Tres bien (>= 14), Bien (>= 12), Passable (>= 10), sinon Insuffisant ;
+- decision : Admis (>= 10), Admis sous conditions (>= 8,5), sinon Redouble ;
+- le calcul est idempotent : un bulletin existant est mis a jour, jamais duplique ;
+- la publication ne concerne que les bulletins au statut `Calcule` de la classe et de la periode choisies et horodate `published_at` ;
+- les formulaires sont proteges par un jeton CSRF et suivent le schema POST / redirection / GET.

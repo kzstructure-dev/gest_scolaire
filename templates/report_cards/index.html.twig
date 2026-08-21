@@ -19,19 +19,28 @@
         .button, button { border: 0; background: #0f7771; color: #fff; border-radius: 6px; padding: 11px 14px; font-weight: bold; cursor: pointer; text-decoration: none; display: inline-block; }
         .ghost { background: #17343a; } table { width: 100%; border-collapse: collapse; } th, td { padding: 13px 10px; border-bottom: 1px solid #edf2f1; text-align: left; font-size: 13px; } th { color: #718186; font-size: 10px; text-transform: uppercase; }
         .status { display: inline-block; padding: 5px 8px; border-radius: 12px; background: #e5f4ed; color: #246d57; font-size: 11px; }
+        .publish-form { margin-top: 14px; }
         @media (max-width: 650px) { .shell { display: block; } aside { width: 100%; padding: 16px; } nav { grid-template-columns: repeat(3, 1fr); } .content { padding: 25px 17px 45px; } .topbar { padding: 0 17px; } .card { overflow-x: auto; } table { min-width: 780px; } }
     </style>
 </head>
 <body><div class="shell"><aside><div class="brand">Ecole Horizon<span>Gestion scolaire</span></div><div class="year">Annee scolaire<strong>2025 - 2026</strong></div>{{ include('partials/_sidebar_nav.html.twig', { active: 'report_cards' }) }}</aside><main><div class="topbar"><span>Administration / Pedagogie / Bulletins</span><span class="profile">{{ app.user.fullName }} · {{ app.user.role.name }}<a class="logout-link" href="{{ path('app_logout') }}">Deconnexion</a></span></div><div class="content">
 <header><div><p>Pedagogie · Annee 2025 - 2026</p><h1>Bulletins trimestriels</h1><p>Moyenne = somme(note / bareme x 20 x coefficient) / somme(coefficients), puis rang de classe.</p></div></header>
-{% if message %}<div class="notice success">{{ message }}</div>{% endif %}{% if error %}<div class="notice error">{{ error }}</div>{% endif %}
+{% for label, messages in app.flashes(['success', 'error']) %}{% for message in messages %}<div class="notice {{ label }}">{{ message }}</div>{% endfor %}{% endfor %}
 <section class="card"><form class="form-grid" method="post">
+    <input type="hidden" name="_token" value="{{ csrf_token('report_cards_generate') }}">
     <label>Classe<select name="class_id" required><option value="">Choisir</option>{% for class in classes %}<option value="{{ class.id }}" {% if classId == class.id %}selected{% endif %}>{{ class.name }} · {{ class.cycle }}</option>{% endfor %}</select></label>
     <label>Periode<select name="period_id" required>{% for period in periods %}<option value="{{ period.id }}" {% if periodId == period.id %}selected{% endif %}>{{ period.name }}</option>{% endfor %}</select></label>
     <button class="button" type="submit">Calculer les bulletins</button>
+</form>
+<form class="publish-form" method="post">
+    <input type="hidden" name="_token" value="{{ csrf_token('report_cards_publish') }}">
+    <input type="hidden" name="action" value="publish">
+    <input type="hidden" name="class_id" value="{{ classId }}">
+    <input type="hidden" name="period_id" value="{{ periodId }}">
+    <button class="button" type="submit">Publier les bulletins calcules de la classe filtree</button>
 </form></section>
 <section class="card"><form class="toolbar" method="get"><select name="class_id"><option value="0">Toutes les classes</option>{% for class in classes %}<option value="{{ class.id }}" {% if classId == class.id %}selected{% endif %}>{{ class.name }}</option>{% endfor %}</select><select name="period_id"><option value="0">Toutes les periodes</option>{% for period in periods %}<option value="{{ period.id }}" {% if periodId == period.id %}selected{% endif %}>{{ period.name }}</option>{% endfor %}</select><button class="ghost" type="submit">Filtrer</button></form>
-<table><thead><tr><th>Eleve</th><th>Classe</th><th>Periode</th><th>Moyenne / 20</th><th>Rang</th><th>Appreciation</th><th>Statut</th><th></th></tr></thead>
-<tbody>{% for card in cards %}<tr><td><strong>{{ card.last_name }} {{ card.first_name }}</strong></td><td>{{ card.class_name }}</td><td>{{ card.period_name }}</td><td>{{ card.average is not null ? card.average : '-' }}</td><td>{{ card.rank ?: '-' }}</td><td>{{ card.appreciation }}</td><td><span class="status">{{ card.status }}</span></td><td><a class="button" href="{{ path('app_report_card_show', {id: card.id}) }}">Voir</a></td></tr>{% else %}<tr><td colspan="8">Aucun bulletin. Calculez une classe apres avoir saisi des notes.</td></tr>{% endfor %}</tbody></table>
+<table><thead><tr><th>Eleve</th><th>Classe</th><th>Periode</th><th>Moyenne / 20</th><th>Rang</th><th>Appreciation</th><th>Decision</th><th>Statut</th><th></th></tr></thead>
+<tbody>{% for card in cards %}<tr><td><strong>{{ card.last_name }} {{ card.first_name }}</strong></td><td>{{ card.class_name }}</td><td>{{ card.period_name }}</td><td>{{ card.average is not null ? card.average : '-' }}</td><td>{{ card.rank ?: '-' }}</td><td>{{ card.appreciation }}</td><td>{{ card.decision ?: '-' }}</td><td><span class="status">{{ card.status }}</span>{% if card.published_at %}<br><small>{{ card.published_at }}</small>{% endif %}</td><td><a class="button" href="{{ path('app_report_card_show', {id: card.id}) }}">Voir</a></td></tr>{% else %}<tr><td colspan="9">Aucun bulletin. Calculez une classe apres avoir saisi des notes.</td></tr>{% endfor %}</tbody></table>
 </section>
 </div></main></div></body></html>

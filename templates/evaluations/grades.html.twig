@@ -24,7 +24,7 @@
 </head>
 <body><div class="shell"><aside><div class="brand">Ecole Horizon<span>Gestion scolaire</span></div><div class="year">Annee scolaire<strong>2025 - 2026</strong></div>{{ include('partials/_sidebar_nav.html.twig', { active: 'evaluations' }) }}</aside><main><div class="topbar"><span>Administration / Pedagogie / Notes</span><span class="profile">{{ app.user.fullName }} · {{ app.user.role.name }}<a class="logout-link" href="{{ path('app_logout') }}">Deconnexion</a></span></div><div class="content">
 <header><div><p>{{ evaluation.class_name }} · {{ evaluation.subject_name }} · {{ evaluation.period_name }}</p><h1>{{ evaluation.title }}</h1><p>{{ evaluation.evaluation_type }} du {{ evaluation.evaluation_date }} · Bareme {{ evaluation.scale }} · Coefficient {{ evaluation.coefficient }}</p></div><a class="button ghost" href="{{ path('app_evaluations') }}">Retour</a></header>
-{% if message %}<div class="notice success">{{ message }}</div>{% endif %}{% if error %}<div class="notice error">{{ error }}</div>{% endif %}
+{% for label, messages in app.flashes(['success', 'error']) %}{% for message in messages %}<div class="notice {{ label }}">{{ message }}</div>{% endfor %}{% endfor %}
 <section class="stats">
     <article class="card"><small>Eleves</small><strong>{{ students|length }}</strong></article>
     <article class="card"><small>Notes saisies</small><strong>{{ entered }}</strong></article>
@@ -36,6 +36,7 @@
     <p class="hint">Aucun eleve inscrit dans cette classe. Inscrivez des eleves avant de saisir les notes.</p>
 {% else %}
     <form method="post">
+        <input type="hidden" name="_token" value="{{ csrf_token('evaluation_grades_' ~ evaluation.id) }}">
         <table>
             <thead><tr><th>Eleve</th><th>Note / {{ evaluation.scale }}</th><th>Note / 20</th><th>Appreciation</th></tr></thead>
             <tbody>

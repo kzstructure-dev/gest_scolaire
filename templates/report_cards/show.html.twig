@@ -34,7 +34,8 @@
         </tbody>
     </table>
     <p><strong>Appreciation :</strong> {{ card.appreciation }}</p>
-    <p>Document edite le {{ card.published_at ?: 'now'|date('Y-m-d H:i') }}.</p>
+    <p><strong>Decision :</strong> {{ card.decision ?: 'En attente du conseil de classe' }}</p>
+    <p>{% if card.published_at %}Bulletin publie le {{ card.published_at }}.{% else %}Bulletin non publie, edite le {{ 'now'|date('Y-m-d H:i') }}.{% endif %}</p>
     <div class="actions"><button type="button" onclick="window.print()">Imprimer</button><a class="ghost" href="{{ path('app_report_cards') }}">Retour</a></div>
 </article>
 </body>
