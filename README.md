@@ -586,3 +586,22 @@ Regles appliquees par `App\Service\ReportCardManager` :
 - le calcul est idempotent : un bulletin existant est mis a jour, jamais duplique ;
 - la publication ne concerne que les bulletins au statut `Calcule` de la classe et de la periode choisies et horodate `published_at` ;
 - les formulaires sont proteges par un jeton CSRF et suivent le schema POST / redirection / GET.
+
+## 30. Module frais scolaires et paiements
+
+| Route | Methode | Role requis | Action |
+| --- | --- | --- | --- |
+| `/symfony/finance` | GET | Comptable, Direction, Administrateur | Tableau de bord caisse, factures filtrables, paiements, impayes |
+| `/symfony/finance` | POST | Comptable, Direction, Administrateur | `action=tariff`, `action=invoice`, `action=payment` ou `action=cancel` |
+| `/symfony/finance/receipts/{id}` | GET | Comptable, Direction, Administrateur | Recu imprimable d'un paiement |
+
+Regles appliquees par `App\Service\FinanceManager` :
+
+- un tarif exige un libelle, un montant strictement positif, une echeance au format `AAAA-MM-JJ` si fournie et un niveau existant ; deux tarifs actifs ne peuvent pas porter le meme libelle ;
+- une facture ne peut viser qu'un eleve ayant une inscription validee sur l'annee en cours et un tarif actif ; le meme tarif ne peut pas etre facture deux fois au meme eleve ;
+- le numero de facture (`FAC-00001`) et le numero de recu (`REC-00001`) sont generes automatiquement ;
+- un paiement doit etre positif, date au format `AAAA-MM-JJ`, avec un mode parmi Especes, Cheque, Virement et Mobile money, et ne peut pas depasser le reste a payer ;
+- chaque paiement valide emet un recu unique qui conserve l'utilisateur emetteur (`receipts.issued_by`) ;
+- le statut de la facture est recalcule apres chaque operation : `A payer`, `Partiel` ou `Payee` ;
+- une annulation exige un motif, conserve la ligne de paiement au statut `Annule` et remet le montant au reste a payer ;
+- les impayes sont recapitules par eleve ; les formulaires sont proteges par un jeton CSRF et suivent le schema POST / redirection / GET.
