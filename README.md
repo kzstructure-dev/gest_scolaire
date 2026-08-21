@@ -489,12 +489,21 @@ L'application Symfony est maintenant protegee par le composant Security. Toutes 
 | `/symfony/evaluations` | Enseignant, Scolarite, Direction |
 | `/symfony/report-cards` | Enseignant, Scolarite, Direction |
 | `/symfony/finance` | Comptable, Direction |
+| `/symfony/teachers` | Scolarite, Direction |
+| `/symfony/timetable` | Enseignant, Scolarite, Direction |
 
-### Creer un compte
+### Premiere connexion
+
+La base SQLite n'est pas versionnee : il faut la creer avant de pouvoir se connecter.
 
 ```powershell
+composer install
+php bin/console app:db:init
 php bin/console app:user:create admin@ecole-horizon.ci "MotDePasse" Administrateur Adama Kone
+php -S 127.0.0.1:8000 -t public
 ```
+
+`app:db:init` cree `data/gest_scolaire.sqlite`, le schema complet et les donnees de reference (dont les roles metier) ; la commande est reexecutable sans perte.
 
 Les mots de passe sont haches par Symfony, aucun mot de passe en clair n'est stocke. Le nom du role doit exister dans la table `roles`.
 
