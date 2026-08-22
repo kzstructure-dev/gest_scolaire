@@ -466,3 +466,175 @@ Commandes de controle :
 php bin/console doctrine:migrations:status
 php bin/console doctrine:migrations:migrate --no-interaction
 ```
+
+## 25. Authentification et droits
+
+L'application Symfony est maintenant protegee par le composant Security. Toutes les routes exigent une session authentifiee, seule `/login` est publique.
+
+- `src/Entity/User.php` : entite mappee sur la table `users`, elle implemente `UserInterface` et `PasswordAuthenticatedUserInterface` et lit le hachage dans `password_hash` ;
+- `src/Entity/Role.php` : role metier de la table `roles`, converti en role Symfony par `getSecurityRole()`, par exemple `Scolarite` devient `ROLE_SCOLARITE` ;
+- `src/Controller/SecurityController.php` et `templates/security/login.html.twig` : formulaire de connexion avec jeton CSRF et option « rester connecte » ;
+- `src/EventListener/LoginAuditListener.php` : mise a jour de `users.last_login_at` et journalisation de la connexion dans `audit_logs` ;
+- `config/packages/security.yaml` : fournisseur Doctrine, hierarchie des roles et controle d'acces par module.
+
+### Hierarchie des roles
+
+`ROLE_ADMINISTRATEUR` herite de `ROLE_DIRECTION`, qui herite de `ROLE_SCOLARITE`, `ROLE_ENSEIGNANT`, `ROLE_EDUCATEUR` et `ROLE_COMPTABLE`.
+
+| Module | Roles autorises |
+| --- | --- |
+| `/symfony/students` | Scolarite, Direction |
+| `/symfony/classes` | Scolarite, Enseignant, Direction |
+| `/symfony/attendance` | Enseignant, Educateur, Scolarite, Direction |
+| `/symfony/evaluations` | Enseignant, Scolarite, Direction |
+| `/symfony/report-cards` | Enseignant, Scolarite, Direction |
+| `/symfony/finance` | Comptable, Direction |
+| `/symfony/teachers` | Scolarite, Direction |
+| `/symfony/timetable` | Enseignant, Scolarite, Direction |
+
+### Premiere connexion
+
+La base SQLite n'est pas versionnee : il faut la creer avant de pouvoir se connecter.
+
+Sous Windows, double-cliquez sur `demarrer-windows.bat` : le script installe Composer si besoin, cree la base, demande l'email et le mot de passe de l'administrateur puis lance le serveur sur `http://127.0.0.1:8000`.
+
+Manuellement :
+
+```powershell
+composer install
+php bin/console app:db:init
+php bin/console app:user:create admin@ecole-horizon.ci "MotDePasse" Administrateur Adama Kone
+php -S 127.0.0.1:8000 -t public
+```
+
+`app:db:init` cree `data/gest_scolaire.sqlite`, le schema complet et les donnees de reference (dont les roles metier) ; la commande est reexecutable sans perte.
+
+Les mots de passe sont haches par Symfony, aucun mot de passe en clair n'est stocke. Le nom du role doit exister dans la table `roles`.
+
+La page PHP historique `index.php` reste hors du pare-feu Symfony : elle doit etre retiree ou passee derriere le pare-feu avant toute mise en production.
+
+## 26. Tests automatises
+
+```powershell
+php bin/phpunit
+```
+
+Les tests fonctionnels couvrent l'authentification et les droits :
+
+- redirection vers `/login` pour un visiteur non authentifie ;
+- echec de connexion avec de mauvais identifiants ;
+- mise a jour de `users.last_login_at` et insertion dans `audit_logs` a chaque connexion reussie ;
+- acces aux sept modules pour les roles Administrateur, Scolarite, Enseignant et Comptable (200 ou 403) ;
+- menu lateral filtre par role ;
+- deconnexion ;
+- page 403 en francais.
+
+`tests/bootstrap.php` recree la base SQLite de test `var/gest_scolaire_test.sqlite` a chaque execution (schema et donnees de reference produits par `config.php`) et y insere les comptes de test declares dans `tests/TestUsers.php`. La base de developpement `data/gest_scolaire.sqlite` n'est jamais touchee. Le chemin de la base peut etre change via la variable d'environnement `GEST_SCOLAIRE_DB`.
+
+## 27. Module eleves et inscriptions
+
+| Route | Methode | Role requis | Action |
+| --- | --- | --- | --- |
+| `/symfony/students` | GET | Scolarite, Direction | Liste, recherche et filtre par cycle |
+| `/symfony/students` | POST | Scolarite, Direction | Inscription d'un eleve dans l'annee courante |
+| `/symfony/students/{id}/edit` | GET / POST | Scolarite, Direction | Modification de la fiche et de la classe |
+| `/symfony/students/{id}/delete` | POST | Scolarite, Direction | Suppression de l'eleve et de son inscription |
+
+Regles appliquees par `App\Service\StudentManager` :
+
+- prenoms, nom et classe obligatoires, classe existante, telephone au format ivoirien tolerant, statut parmi `Inscrit`, `A verifier`, `Transfere`, `Radie` ;
+- le cycle est deduit du nom de la classe (`CP`, `CE`, `CM` => Primaire, sinon Secondaire) ;
+- l'inscription est creee avec un numero `INS-00042` et le statut `Validee` ;
+- un changement de classe met a jour l'inscription et laisse une ligne dans `transfers` ;
+- chaque creation, modification et suppression est tracee dans `audit_logs` avec l'auteur et les valeurs avant/apres ;
+- tous les formulaires sont proteges par un jeton CSRF.
+
+## 28. Module presences et absences
+
+| Route | Methode | Role requis | Action |
+| --- | --- | --- | --- |
+| `/symfony/attendance` | GET | Enseignant, Educateur, Scolarite, Direction | Feuille du jour par classe, compteurs et cumul mensuel |
+| `/symfony/attendance` | POST | Enseignant, Educateur, Scolarite, Direction | Enregistrement ou mise a jour de la feuille du jour |
+| `/symfony/attendance/{id}/justify` | POST | Enseignant, Educateur, Scolarite, Direction | Justification d'une absence avec motif obligatoire |
+
+Regles appliquees par `App\Service\AttendanceManager` :
+
+- seuls les eleves reellement inscrits dans la classe (`registrations.status = 'Validee'`) sont enregistres ;
+- une seule ligne par eleve, classe et date : une nouvelle saisie met a jour la precedente ;
+- les minutes de retard ne sont conservees que pour le statut `Retard` ;
+- l'auteur de la saisie est trace dans `attendance.validated_by` ;
+- une absence peut etre justifiee (`attendance.justified`) avec un motif obligatoire ;
+- le cumul mensuel affiche par eleve les absences, les absences justifiees, les retards et les minutes cumulees ;
+- les formulaires sont proteges par un jeton CSRF et suivent le schema POST / redirection / GET.
+
+## 29. Module notes et bulletins
+
+| Route | Methode | Role requis | Action |
+| --- | --- | --- | --- |
+| `/symfony/evaluations` | GET | Enseignant, Direction, Scolarite | Liste des evaluations, filtre par classe |
+| `/symfony/evaluations` | POST | Enseignant, Direction, Scolarite | Creation d'une evaluation puis redirection vers la saisie |
+| `/symfony/evaluations/{id}` | GET / POST | Enseignant, Direction, Scolarite | Feuille de notes de la classe et statistiques |
+| `/symfony/evaluations/{id}/delete` | POST | Enseignant, Direction, Scolarite | Suppression de l'evaluation et de ses notes |
+| `/symfony/report-cards` | GET | Enseignant, Direction, Scolarite | Bulletins filtres par classe et periode |
+| `/symfony/report-cards` | POST | Enseignant, Direction, Scolarite | Calcul (`action` absent) ou publication (`action=publish`) |
+| `/symfony/report-cards/{id}` | GET | Enseignant, Direction, Scolarite | Detail d'un bulletin, moyennes par matiere et absences |
+
+Regles appliquees par `App\Service\EvaluationManager` :
+
+- titre, classe, matiere et periode obligatoires et existants, type parmi les huit types officiels, date au format `AAAA-MM-JJ` ;
+- bareme et coefficient strictement positifs ;
+- seuls les eleves inscrits dans la classe de l'evaluation peuvent recevoir une note ;
+- une note doit etre numerique et comprise entre 0 et le bareme, une seule note par eleve et evaluation ;
+- un champ vide supprime la note existante ;
+- l'auteur de la saisie est trace dans `grades.validated_by` ;
+- l'evaluation passe a `Complete` quand toutes les notes attendues sont saisies, sinon `Saisie`.
+
+Regles appliquees par `App\Service\ReportCardManager` :
+
+- chaque note est ramenee sur 20 (`note / bareme * 20`) puis ponderee par le coefficient de l'evaluation pour obtenir la moyenne de la matiere ;
+- la moyenne generale pondere les moyennes par matiere avec le coefficient de la matiere ;
+- le rang est calcule par classe et periode, les ex aequo partagent le meme rang, un eleve sans note n'est pas classe ;
+- appreciation : Excellent (>= 16), Tres bien (>= 14), Bien (>= 12), Passable (>= 10), sinon Insuffisant ;
+- decision : Admis (>= 10), Admis sous conditions (>= 8,5), sinon Redouble ;
+- le calcul est idempotent : un bulletin existant est mis a jour, jamais duplique ;
+- la publication ne concerne que les bulletins au statut `Calcule` de la classe et de la periode choisies et horodate `published_at` ;
+- les formulaires sont proteges par un jeton CSRF et suivent le schema POST / redirection / GET.
+
+## 30. Module frais scolaires et paiements
+
+| Route | Methode | Role requis | Action |
+| --- | --- | --- | --- |
+| `/symfony/finance` | GET | Comptable, Direction, Administrateur | Tableau de bord caisse, factures filtrables, paiements, impayes |
+| `/symfony/finance` | POST | Comptable, Direction, Administrateur | `action=tariff`, `action=invoice`, `action=payment` ou `action=cancel` |
+| `/symfony/finance/receipts/{id}` | GET | Comptable, Direction, Administrateur | Recu imprimable d'un paiement |
+
+Regles appliquees par `App\Service\FinanceManager` :
+
+- un tarif exige un libelle, un montant strictement positif, une echeance au format `AAAA-MM-JJ` si fournie et un niveau existant ; deux tarifs actifs ne peuvent pas porter le meme libelle ;
+- une facture ne peut viser qu'un eleve ayant une inscription validee sur l'annee en cours et un tarif actif ; le meme tarif ne peut pas etre facture deux fois au meme eleve ;
+- le numero de facture (`FAC-00001`) et le numero de recu (`REC-00001`) sont generes automatiquement ;
+- un paiement doit etre positif, date au format `AAAA-MM-JJ`, avec un mode parmi Especes, Cheque, Virement et Mobile money, et ne peut pas depasser le reste a payer ;
+- chaque paiement valide emet un recu unique qui conserve l'utilisateur emetteur (`receipts.issued_by`) ;
+- le statut de la facture est recalcule apres chaque operation : `A payer`, `Partiel` ou `Payee` ;
+- une annulation exige un motif, conserve la ligne de paiement au statut `Annule` et remet le montant au reste a payer ;
+- les impayes sont recapitules par eleve ; les formulaires sont proteges par un jeton CSRF et suivent le schema POST / redirection / GET.
+
+## 31. Module enseignants et emploi du temps
+
+| Route | Methode | Role requis | Action |
+| --- | --- | --- | --- |
+| `/symfony/teachers` | GET | Scolarite, Direction, Administrateur | Liste des enseignants, charge horaire et affectations filtrables |
+| `/symfony/teachers` | POST | Scolarite, Direction, Administrateur | `action=create`, `action=assign` ou `action=unassign` |
+| `/symfony/timetable` | GET | Enseignant, Scolarite, Direction, Administrateur | Emploi du temps hebdomadaire d'une classe |
+| `/symfony/timetable` | POST | Enseignant, Scolarite, Direction, Administrateur | `action=schedule` ou `action=remove` |
+
+Regles appliquees par `App\Service\TeacherManager` :
+
+- la creation d'un enseignant cree la fiche `staff` (type Enseignant) et la fiche `teachers` dans une seule transaction ; le matricule est genere (`ENS-0001`) s'il n'est pas fourni et reste unique ;
+- l'email, s'il est renseigne, doit etre valide ;
+- une matiere n'est confiee qu'a un seul enseignant par classe ; reaffecter le meme trio enseignant / classe / matiere met simplement a jour le volume horaire ;
+- la charge hebdomadaire d'un enseignant est plafonnee a 30 heures, tous cours confondus ;
+- retirer une affectation supprime aussi les creneaux correspondants de l'emploi du temps ;
+- un creneau exige une affectation existante, un jour du lundi au samedi et des heures `HH:MM` avec une fin posterieure au debut ;
+- un creneau est refuse s'il chevauche un autre creneau du meme enseignant, de la meme classe ou de la meme salle ; deux creneaux jointifs (10:00-12:00 apres 08:00-10:00) sont acceptes ;
+- les formulaires sont proteges par un jeton CSRF et suivent le schema POST / redirection / GET.

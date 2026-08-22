@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-const DB_PATH = __DIR__ . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'gest_scolaire.sqlite';
+define('DB_PATH', getenv('GEST_SCOLAIRE_DB') ?: __DIR__ . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'gest_scolaire.sqlite');
 
 function database(): PDO
 {
