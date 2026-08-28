@@ -30,7 +30,7 @@
             <div><small>Classe</small><strong>{{ student.registered_class ?: student.class_name }}</strong></div>
             <div><small>Date d'inscription</small><strong>{{ student.registration_date ?: '-' }}</strong></div>
             <div><small>Statut inscription</small><strong>{{ student.registration_status ?: 'Aucune' }}</strong></div>
-            <div><small>Effectif de la classe</small><strong>{{ student.capacity ? 'capacite ' ~ student.capacity : '-' }}</strong></div>
+            <div><small>Effectif de la classe</small><strong>{{ student.capacity ? student.class_size ~ ' / ' ~ student.capacity : '-' }}</strong></div>
         </div>
     </section>
 

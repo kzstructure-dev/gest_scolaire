@@ -205,7 +205,8 @@ final class StudentController extends AbstractController
 
         return <<<SQL
             SELECT s.*, r.registration_number, r.registration_date, r.status AS registration_status,
-                   c.id AS class_id, c.name AS registered_class, c.capacity
+                   c.id AS class_id, c.name AS registered_class, c.capacity,
+                   (SELECT COUNT(*) FROM registrations rc WHERE rc.class_id = c.id AND rc.status = 'Validee') AS class_size
             FROM students s
             LEFT JOIN registrations r ON r.student_id = s.id AND r.school_year_id = $schoolYearId
             LEFT JOIN classes c ON c.id = r.class_id
