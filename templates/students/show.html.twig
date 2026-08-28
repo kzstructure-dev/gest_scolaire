@@ -1,0 +1,167 @@
+{% extends 'layout.html.twig' %}
+{% import 'students/_macros.html.twig' as students_macros %}
+
+{% block title %}{{ student.last_name }} {{ student.first_name }}{% endblock %}
+{% block breadcrumb %}Administration / Scolarite / Eleves / {{ student.last_name }} {{ student.first_name }}{% endblock %}
+
+{% block content %}
+<header>
+    <div>
+        <p><a href="{{ path('app_students') }}">← Retour a la liste</a></p>
+        <h1>{{ student.last_name }} {{ student.first_name }}</h1>
+        <p>{{ student.cycle }} · {{ student.registered_class ?: student.class_name }} · {{ student.registration_number ?: 'Non inscrit cette annee' }}</p>
+    </div>
+    {{ students_macros.status(student.status) }}
+</header>
+
+<section class="stats">
+    <div class="card"><small>Moyenne generale</small><strong>{{ average is null ? '-' : average|number_format(2, ',', ' ') ~ ' / 20' }}</strong></div>
+    <div class="card"><small>Taux de presence</small><strong>{{ attendance.rate is null ? '-' : attendance.rate ~ ' %' }}</strong></div>
+    <div class="card"><small>Absences / retards</small><strong>{{ attendance.absent }} / {{ attendance.late }}</strong></div>
+    <div class="card"><small>Reste a payer</small><strong>{{ finance.remaining|number_format(0, ',', ' ') }} F</strong></div>
+</section>
+
+<div class="grid-2">
+    <section class="card">
+        <h2>Identite et scolarite</h2>
+        <div class="facts">
+            <div><small>Telephone</small><strong>{{ student.phone ?: '-' }}</strong></div>
+            <div><small>Cycle</small><strong>{{ student.cycle }}</strong></div>
+            <div><small>Classe</small><strong>{{ student.registered_class ?: student.class_name }}</strong></div>
+            <div><small>Date d'inscription</small><strong>{{ student.registration_date ?: '-' }}</strong></div>
+            <div><small>Statut inscription</small><strong>{{ student.registration_status ?: 'Aucune' }}</strong></div>
+            <div><small>Effectif de la classe</small><strong>{{ student.capacity ? student.class_size ~ ' / ' ~ student.capacity : '-' }}</strong></div>
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>Modifier la fiche</h2>
+        <form class="form-grid" method="post" action="{{ path('app_student_update', {id: student.id}) }}" style="grid-template-columns: repeat(2, 1fr)">
+            <label>Prenoms<input name="first_name" value="{{ student.first_name }}" required maxlength="120"></label>
+            <label>Nom<input name="last_name" value="{{ student.last_name }}" required maxlength="120"></label>
+            <label>Telephone<input name="phone" value="{{ student.phone }}" placeholder="07 00 00 00 00" inputmode="tel"></label>
+            <label>Statut
+                <select name="status">
+                    {% for status in statuses %}<option value="{{ status }}" {{ student.status == status ? 'selected' : '' }}>{{ status }}</option>{% endfor %}
+                </select>
+            </label>
+            <label>Classe
+                <select name="class_name">
+                    {% for class in classes %}
+                        <option value="{{ class.name }}" {{ student.class_name == class.name ? 'selected' : '' }}>{{ class.name }} ({{ class.student_count }}/{{ class.capacity }})</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>Motif du transfert<input name="reason" placeholder="Optionnel"></label>
+            <button class="button" type="submit">Enregistrer</button>
+        </form>
+        <p>Changer de classe cree automatiquement un transfert et met a jour l'inscription de l'annee.</p>
+    </section>
+</div>
+
+<section class="card">
+    <h2>Responsables</h2>
+    <table>
+        <thead><tr><th>Responsable</th><th>Lien</th><th>Telephone</th><th>Email</th><th>Legal</th><th>Autorise a recuperer</th></tr></thead>
+        <tbody>
+        {% for guardian in guardians %}
+            <tr>
+                <td><strong>{{ guardian.last_name }} {{ guardian.first_name }}</strong></td>
+                <td>{{ guardian.relationship }}</td>
+                <td>{{ guardian.phone ?: '-' }}</td>
+                <td>{{ guardian.email ?: '-' }}</td>
+                <td>{{ guardian.is_legal ? 'Oui' : 'Non' }}</td>
+                <td>{{ guardian.can_pick_up ? 'Oui' : 'Non' }}</td>
+            </tr>
+        {% else %}
+            <tr><td colspan="6">Aucun responsable enregistre.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</section>
+
+<div class="grid-2">
+    <section class="card">
+        <h2>Dernieres notes</h2>
+        <table>
+            <thead><tr><th>Matiere</th><th>Evaluation</th><th>Date</th><th>Note</th></tr></thead>
+            <tbody>
+            {% for grade in grades %}
+                <tr>
+                    <td><strong>{{ grade.subject }}</strong></td>
+                    <td>{{ grade.title }} <span class="status muted">{{ grade.evaluation_type }}</span></td>
+                    <td>{{ grade.evaluation_date }}</td>
+                    <td>{{ grade.value|number_format(2, ',', ' ') }} / {{ grade.scale|number_format(0) }} (coef. {{ grade.coefficient|number_format(0) }})</td>
+                </tr>
+            {% else %}
+                <tr><td colspan="4">Aucune note saisie.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </section>
+
+    <section class="card">
+        <h2>Situation financiere</h2>
+        <div class="facts">
+            <div><small>Facture</small><strong>{{ finance.invoiced|number_format(0, ',', ' ') }} F</strong></div>
+            <div><small>Encaisse</small><strong>{{ finance.paid|number_format(0, ',', ' ') }} F</strong></div>
+        </div>
+        <table style="margin-top:14px">
+            <thead><tr><th>Facture</th><th>Objet</th><th>Echeance</th><th>Reste</th><th>Statut</th></tr></thead>
+            <tbody>
+            {% for invoice in finance.invoices %}
+                <tr>
+                    <td><strong>{{ invoice.invoice_number }}</strong></td>
+                    <td>{{ invoice.tariff_label }}</td>
+                    <td>{{ invoice.due_date ?: '-' }}</td>
+                    <td>{{ invoice.remaining|number_format(0, ',', ' ') }} F</td>
+                    <td><span class="status {{ invoice.remaining > 0 ? 'pending' : '' }}">{{ invoice.status }}</span></td>
+                </tr>
+            {% else %}
+                <tr><td colspan="5">Aucune facture.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </section>
+</div>
+
+<div class="grid-2">
+    <section class="card">
+        <h2>Historique des transferts</h2>
+        <table>
+            <thead><tr><th>Date</th><th>De</th><th>Vers</th><th>Motif</th><th>Statut</th></tr></thead>
+            <tbody>
+            {% for transfer in transfers %}
+                <tr>
+                    <td>{{ transfer.transfer_date }}</td>
+                    <td>{{ transfer.from_class ?: '-' }}</td>
+                    <td>{{ transfer.to_class ?: '-' }}</td>
+                    <td>{{ transfer.reason ?: '-' }}</td>
+                    <td>{{ transfer.status }}</td>
+                </tr>
+            {% else %}
+                <tr><td colspan="5">Aucun transfert.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </section>
+
+    <section class="card">
+        <h2>Dossier administratif</h2>
+        <table>
+            <thead><tr><th>Piece</th><th>Statut</th><th>Depose le</th></tr></thead>
+            <tbody>
+            {% for document in documents %}
+                <tr>
+                    <td>{{ document.document_type }}</td>
+                    <td>{{ students_macros.status(document.status) }}</td>
+                    <td>{{ document.submitted_at ?: '-' }}</td>
+                </tr>
+            {% else %}
+                <tr><td colspan="3">Aucune piece enregistree.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </section>
+</div>
+{% endblock %}

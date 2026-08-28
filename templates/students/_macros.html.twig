@@ -1,0 +1,4 @@
+{% macro status(value) %}
+    {%- set variant = value == 'A verifier' ? 'pending' : (value in ['Suspendu', 'Sorti', 'Retard paiement'] ? 'danger' : (value == 'Transfere' ? 'muted' : '')) -%}
+    <span class="status {{ variant }}">{{ value }}</span>
+{% endmacro %}

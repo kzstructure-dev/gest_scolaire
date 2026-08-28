@@ -1,37 +1,76 @@
-<!doctype html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Ecole Horizon | Bulletins</title>
-    <style>
-        :root { font-family: Arial, sans-serif; color: #17343a; background: #f4f8f7; } * { box-sizing: border-box; }
-        body { margin: 0; } .shell { display: flex; min-height: 100vh; } aside { width: 230px; background: #17343a; color: #d9e6e3; padding: 26px 16px; flex-shrink: 0; }
-        .brand { color: #fff; font-weight: bold; font-size: 16px; padding: 0 10px 28px; } .brand span { display: block; color: #9fb4b3; font-size: 11px; font-weight: normal; margin-top: 5px; }
-        .year { border: 1px solid #33555a; border-radius: 7px; padding: 11px; margin-bottom: 22px; font-size: 11px; color: #9fb4b3; } .year strong { display: block; color: #fff; margin-top: 5px; }
-        nav { display: grid; gap: 4px; } nav a { color: #a9c0be; padding: 11px; border-radius: 6px; text-decoration: none; font-size: 13px; } nav a.active, nav a:hover { color: #fff; background: #246461; }
-        main { flex: 1; min-width: 0; } .topbar { height: 70px; background: #fff; border-bottom: 1px solid #e4eceb; padding: 0 38px; display: flex; justify-content: space-between; align-items: center; color: #718186; font-size: 12px; } .profile { color: #17343a; font-weight: bold; }
-        .content { max-width: 1320px; margin: 0 auto; padding: 34px 38px 60px; } header { display: flex; justify-content: space-between; align-items: end; margin-bottom: 24px; } h1 { margin: 0; font-size: 30px; } p { color: #718186; }
-        .card { background: #fff; border: 1px solid #e4eceb; border-radius: 10px; padding: 20px; margin-bottom: 18px; }
-        .notice { padding: 11px 14px; border-radius: 6px; margin-bottom: 16px; font-size: 13px; } .success { background: #e5f4ed; color: #246d57; } .error { background: #fcebe7; color: #a54d3d; }
-        .form-grid, .toolbar { display: flex; gap: 10px; align-items: end; flex-wrap: wrap; } label { display: grid; gap: 6px; color: #718186; font-size: 11px; font-weight: bold; }
-        input, select { border: 1px solid #dce8e6; border-radius: 6px; padding: 11px; background: #fff; color: #17343a; }
-        .button, button { border: 0; background: #0f7771; color: #fff; border-radius: 6px; padding: 11px 14px; font-weight: bold; cursor: pointer; text-decoration: none; display: inline-block; }
-        .ghost { background: #17343a; } table { width: 100%; border-collapse: collapse; } th, td { padding: 13px 10px; border-bottom: 1px solid #edf2f1; text-align: left; font-size: 13px; } th { color: #718186; font-size: 10px; text-transform: uppercase; }
-        .status { display: inline-block; padding: 5px 8px; border-radius: 12px; background: #e5f4ed; color: #246d57; font-size: 11px; }
-        @media (max-width: 650px) { .shell { display: block; } aside { width: 100%; padding: 16px; } nav { grid-template-columns: repeat(3, 1fr); } .content { padding: 25px 17px 45px; } .topbar { padding: 0 17px; } .card { overflow-x: auto; } table { min-width: 780px; } }
-    </style>
-</head>
-<body><div class="shell"><aside><div class="brand">Ecole Horizon<span>Gestion scolaire</span></div><div class="year">Annee scolaire<strong>2025 - 2026</strong></div><nav><a href="{{ path('app_dashboard') }}">⌂ Tableau de bord</a><a href="{{ path('app_students') }}">◉ Eleves</a><a href="{{ path('app_classes') }}">▦ Classes</a><a href="{{ path('app_attendance') }}">✓ Presences</a><a href="{{ path('app_evaluations') }}">▤ Notes</a><a class="active" href="{{ path('app_report_cards') }}">▤ Bulletins</a><a href="{{ path('app_finance') }}">₣ Finances</a></nav></aside><main><div class="topbar"><span>Administration / Pedagogie / Bulletins</span><span class="profile">Adama Kone · Directeur</span></div><div class="content">
-<header><div><p>Pedagogie · Annee 2025 - 2026</p><h1>Bulletins trimestriels</h1><p>Moyenne = somme(note / bareme x 20 x coefficient) / somme(coefficients), puis rang de classe.</p></div></header>
-{% if message %}<div class="notice success">{{ message }}</div>{% endif %}{% if error %}<div class="notice error">{{ error }}</div>{% endif %}
-<section class="card"><form class="form-grid" method="post">
-    <label>Classe<select name="class_id" required><option value="">Choisir</option>{% for class in classes %}<option value="{{ class.id }}" {% if classId == class.id %}selected{% endif %}>{{ class.name }} · {{ class.cycle }}</option>{% endfor %}</select></label>
-    <label>Periode<select name="period_id" required>{% for period in periods %}<option value="{{ period.id }}" {% if periodId == period.id %}selected{% endif %}>{{ period.name }}</option>{% endfor %}</select></label>
-    <button class="button" type="submit">Calculer les bulletins</button>
-</form></section>
-<section class="card"><form class="toolbar" method="get"><select name="class_id"><option value="0">Toutes les classes</option>{% for class in classes %}<option value="{{ class.id }}" {% if classId == class.id %}selected{% endif %}>{{ class.name }}</option>{% endfor %}</select><select name="period_id"><option value="0">Toutes les periodes</option>{% for period in periods %}<option value="{{ period.id }}" {% if periodId == period.id %}selected{% endif %}>{{ period.name }}</option>{% endfor %}</select><button class="ghost" type="submit">Filtrer</button></form>
-<table><thead><tr><th>Eleve</th><th>Classe</th><th>Periode</th><th>Moyenne / 20</th><th>Rang</th><th>Appreciation</th><th>Statut</th><th></th></tr></thead>
-<tbody>{% for card in cards %}<tr><td><strong>{{ card.last_name }} {{ card.first_name }}</strong></td><td>{{ card.class_name }}</td><td>{{ card.period_name }}</td><td>{{ card.average is not null ? card.average : '-' }}</td><td>{{ card.rank ?: '-' }}</td><td>{{ card.appreciation }}</td><td><span class="status">{{ card.status }}</span></td><td><a class="button" href="{{ path('app_report_card_show', {id: card.id}) }}">Voir</a></td></tr>{% else %}<tr><td colspan="8">Aucun bulletin. Calculez une classe apres avoir saisi des notes.</td></tr>{% endfor %}</tbody></table>
+{% extends 'layout.html.twig' %}
+
+{% block title %}Bulletins{% endblock %}
+{% block breadcrumb %}Administration / Pedagogie / Bulletins{% endblock %}
+
+{% block content %}
+<header>
+    <div>
+        <p>Pedagogie · Annee 2025 - 2026</p>
+        <h1>Bulletins trimestriels</h1>
+        <p>Moyenne = somme(note / bareme x 20 x coefficient) / somme(coefficients), puis rang de classe.</p>
+    </div>
+</header>
+
+{% if message %}<div class="notice success">{{ message }}</div>{% endif %}
+{% if error %}<div class="notice error">{{ error }}</div>{% endif %}
+
+<section class="card">
+    <h2>Calcul des bulletins</h2>
+    <form class="form-grid" method="post">
+        <label>Classe
+            <select name="class_id" required>
+                <option value="">Choisir</option>
+                {% for class in classes %}<option value="{{ class.id }}" {{ classId == class.id ? 'selected' : '' }}>{{ class.name }} · {{ class.cycle }}</option>{% endfor %}
+            </select>
+        </label>
+        <label>Periode
+            <select name="period_id" required>
+                {% for period in periods %}<option value="{{ period.id }}" {{ periodId == period.id ? 'selected' : '' }}>{{ period.name }}</option>{% endfor %}
+            </select>
+        </label>
+        <button class="button" type="submit">Calculer les bulletins</button>
+    </form>
 </section>
-</div></main></div></body></html>
+
+<section class="card">
+    <form class="toolbar compact" method="get">
+        <label>Classe
+            <select name="class_id">
+                <option value="0">Toutes les classes</option>
+                {% for class in classes %}<option value="{{ class.id }}" {{ classId == class.id ? 'selected' : '' }}>{{ class.name }}</option>{% endfor %}
+            </select>
+        </label>
+        <label>Periode
+            <select name="period_id">
+                <option value="0">Toutes les periodes</option>
+                {% for period in periods %}<option value="{{ period.id }}" {{ periodId == period.id ? 'selected' : '' }}>{{ period.name }}</option>{% endfor %}
+            </select>
+        </label>
+        <span></span>
+        <button class="button dark" type="submit">Filtrer</button>
+        <a class="button ghost" href="{{ path('app_report_cards') }}">Reinitialiser</a>
+    </form>
+    <table>
+        <thead>
+        <tr><th>Eleve</th><th>Classe</th><th>Periode</th><th>Moyenne / 20</th><th>Rang</th><th>Appreciation</th><th>Statut</th><th></th></tr>
+        </thead>
+        <tbody>
+        {% for card in cards %}
+            <tr>
+                <td><strong>{{ card.last_name }} {{ card.first_name }}</strong></td>
+                <td>{{ card.class_name }}</td>
+                <td>{{ card.period_name }}</td>
+                <td>{{ card.average is not null ? card.average : '-' }}</td>
+                <td>{{ card.rank ?: '-' }}</td>
+                <td>{{ card.appreciation }}</td>
+                <td><span class="status">{{ card.status }}</span></td>
+                <td><a href="{{ path('app_report_card_show', {id: card.id}) }}">Voir →</a></td>
+            </tr>
+        {% else %}
+            <tr><td colspan="8">Aucun bulletin. Calculez une classe apres avoir saisi des notes.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}
