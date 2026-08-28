@@ -58,19 +58,30 @@
         .status.pending { background: #fff3dd; color: #9b6a13; }
         .status.danger { background: #fcebe7; color: #a54d3d; }
         .status.muted { background: #eef2f2; color: #6a7b7d; }
+        .row-fields { display: grid; grid-template-columns: 160px 90px 1fr; gap: 8px; }
+        .actions { display: flex; align-items: center; gap: 10px; margin-top: 16px; }
+        .actions > :last-child { margin-left: auto; }
         .pagination { display: flex; gap: 8px; align-items: center; justify-content: space-between; margin-top: 16px; font-size: 12px; color: #718186; }
         .pagination div { display: flex; gap: 8px; }
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
+        .module-groups { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; align-items: start; }
+        .module-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        .module { display: flex; justify-content: space-between; align-items: center; gap: 8px; background: #f4f8f7; border-radius: 6px; padding: 9px 10px; font-size: 12px; }
+        .module a { color: #17343a; font-weight: bold; text-decoration: none; }
+        .module a:hover { color: #0f7771; }
+        .module strong { font-size: 15px; color: #0f7771; }
+        .card > header { margin-bottom: 14px; align-items: center; }
+        .card > header h2 { margin: 0; }
         .facts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
         .facts div { border-bottom: 1px solid #edf2f1; padding-bottom: 8px; }
         .facts small { display: block; color: #718186; font-size: 10px; text-transform: uppercase; }
         .facts strong { font-size: 14px; }
-        @media (max-width: 1050px) { .toolbar { grid-template-columns: repeat(2, 1fr); } .stats { grid-template-columns: repeat(2, 1fr); } .grid-2 { grid-template-columns: 1fr; } }
+        @media (max-width: 1050px) { .toolbar { grid-template-columns: repeat(2, 1fr); } .stats { grid-template-columns: repeat(2, 1fr); } .grid-2, .module-groups { grid-template-columns: 1fr; } }
         @media (max-width: 850px) { aside { width: 190px; } .form-grid { grid-template-columns: repeat(2, 1fr); } }
         @media (max-width: 650px) {
             .shell { display: block; } aside { width: 100%; padding: 16px; } nav { grid-template-columns: repeat(3, 1fr); }
             .content { padding: 25px 17px 45px; } .topbar { padding: 0 17px; } header { display: block; }
-            .toolbar, .form-grid, .stats, .facts { grid-template-columns: 1fr; }
+            .toolbar, .form-grid, .stats, .facts, .module-groups { grid-template-columns: 1fr; }
             table { min-width: 760px; } .card { overflow-x: auto; }
         }
     </style>

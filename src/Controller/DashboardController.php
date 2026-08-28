@@ -17,7 +17,6 @@ final class DashboardController extends AbstractController
     public function index(EntityManagerInterface $entityManager, Connection $connection): Response
     {
         $students = $entityManager->getRepository(Student::class)->findBy([], ['id' => 'DESC']);
-        $primaryCount = count(array_filter($students, static fn (Student $student): bool => $student->getCycle() === 'Primaire'));
         $moduleGroups = [
             'Etablissement' => [
                 ['label' => 'Sites', 'table' => 'sites'],
@@ -62,8 +61,15 @@ final class DashboardController extends AbstractController
 
         return $this->render('dashboard/index.html.twig', [
             'students' => $students,
-            'primaryCount' => $primaryCount,
-            'secondaryCount' => count($students) - $primaryCount,
+            'byCycle' => $connection->fetchAllAssociative(<<<SQL
+                SELECT s.cycle, COUNT(*) AS total
+                FROM students s
+                LEFT JOIN cycles cy ON cy.name = s.cycle
+                GROUP BY s.cycle
+                ORDER BY COALESCE(cy.id, 99), s.cycle COLLATE NOCASE
+            SQL),
+            'validRegistrations' => (int) $connection->fetchOne("SELECT COUNT(*) FROM registrations WHERE status = 'Validee'"),
+            'openClasses' => (int) $connection->fetchOne('SELECT COUNT(*) FROM classes WHERE active = 1'),
             'moduleGroups' => $moduleGroups,
         ]);
     }
