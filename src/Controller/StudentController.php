@@ -23,6 +23,7 @@ final class StudentController extends AbstractController
         'class' => 's.class_name COLLATE NOCASE, s.last_name COLLATE NOCASE',
         'status' => 's.status COLLATE NOCASE, s.last_name COLLATE NOCASE',
     ];
+    private const CYCLE_ORDER = 'COALESCE(cy.id, 99), s.cycle COLLATE NOCASE';
 
     #[Route('/symfony/students', name: 'app_students', methods: ['GET', 'POST'])]
     public function index(Request $request, Connection $connection): Response
@@ -46,12 +47,12 @@ final class StudentController extends AbstractController
         $page = min(max(1, (int) $request->query->get('page', 1)), $pages);
 
         $students = $connection->fetchAllAssociative(
-            $this->listQuery($where) . ' ORDER BY ' . self::SORTS[$filters['sort']] . ' LIMIT ' . self::PER_PAGE . ' OFFSET ' . (($page - 1) * self::PER_PAGE),
+            $this->listQuery($where) . ' ORDER BY ' . $this->orderBy($filters) . ' LIMIT ' . self::PER_PAGE . ' OFFSET ' . (($page - 1) * self::PER_PAGE),
             $parameters
         );
 
         return $this->render('students/index.html.twig', [
-            'students' => $students,
+            'groups' => $this->groupByCycle($students),
             'classes' => $this->classes($connection),
             'cycles' => $this->cycles($connection),
             'statuses' => self::STATUSES,
@@ -69,7 +70,7 @@ final class StudentController extends AbstractController
         $filters = $this->filters($request, $connection);
         [$where, $parameters] = $this->buildCriteria($filters);
         $students = $connection->fetchAllAssociative(
-            $this->listQuery($where) . ' ORDER BY ' . self::SORTS[$filters['sort']],
+            $this->listQuery($where) . ' ORDER BY ' . $this->orderBy($filters),
             $parameters
         );
 
@@ -210,8 +211,34 @@ final class StudentController extends AbstractController
             FROM students s
             LEFT JOIN registrations r ON r.student_id = s.id AND r.school_year_id = $schoolYearId
             LEFT JOIN classes c ON c.id = r.class_id
+            LEFT JOIN cycles cy ON cy.name = s.cycle
             $where
         SQL;
+    }
+
+    /**
+     * @param array{search: string, cycle: string, class_name: string, status: string, sort: string} $filters
+     */
+    private function orderBy(array $filters): string
+    {
+        return self::CYCLE_ORDER . ', ' . self::SORTS[$filters['sort']];
+    }
+
+    /**
+     * @param list<array<string, mixed>> $students
+     *
+     * @return list<array{cycle: string, students: list<array<string, mixed>>}>
+     */
+    private function groupByCycle(array $students): array
+    {
+        $groups = [];
+        foreach ($students as $student) {
+            $cycle = (string) $student['cycle'];
+            $groups[$cycle]['cycle'] = $cycle;
+            $groups[$cycle]['students'][] = $student;
+        }
+
+        return array_values($groups);
     }
 
     /**
@@ -245,7 +272,13 @@ final class StudentController extends AbstractController
     {
         return [
             'total' => (int) $connection->fetchOne('SELECT COUNT(*) FROM students'),
-            'byCycle' => $connection->fetchAllAssociative('SELECT cycle, COUNT(*) AS total FROM students GROUP BY cycle ORDER BY cycle'),
+            'byCycle' => $connection->fetchAllAssociative(<<<SQL
+                SELECT s.cycle, COUNT(*) AS total
+                FROM students s
+                LEFT JOIN cycles cy ON cy.name = s.cycle
+                GROUP BY s.cycle
+                ORDER BY COALESCE(cy.id, 99), s.cycle COLLATE NOCASE
+            SQL),
             'unregistered' => (int) $connection->fetchOne(
                 'SELECT COUNT(*) FROM students s WHERE NOT EXISTS (SELECT 1 FROM registrations r WHERE r.student_id = s.id AND r.school_year_id = ?)',
                 [self::SCHOOL_YEAR_ID]

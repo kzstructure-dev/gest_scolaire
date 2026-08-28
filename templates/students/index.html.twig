@@ -20,7 +20,7 @@
     <div class="card"><small>Dossiers a verifier</small><strong>{{ stats.toCheck }}</strong></div>
     <div class="card">
         <small>Repartition par cycle</small>
-        {% for row in stats.byCycle %}<p>{{ row.cycle }} · <strong style="font-size:14px">{{ row.total }}</strong></p>{% else %}<p>-</p>{% endfor %}
+        {% for row in stats.byCycle %}<p><a href="{{ path('app_students', filters|merge({cycle: row.cycle, page: 1})) }}">{{ row.cycle }}</a> · <strong style="font-size:14px">{{ row.total }}</strong></p>{% else %}<p>-</p>{% endfor %}
     </div>
 </section>
 
@@ -83,22 +83,35 @@
         <thead>
         <tr><th>Eleve</th><th>Cycle</th><th>Classe</th><th>Telephone</th><th>No inscription</th><th>Date</th><th>Statut</th><th></th></tr>
         </thead>
-        <tbody>
-        {% for student in students %}
-            <tr>
-                <td><strong>{{ student.last_name }} {{ student.first_name }}</strong></td>
-                <td class="cycle">{{ student.cycle }}</td>
-                <td>{{ student.registered_class ?: student.class_name }}</td>
-                <td>{{ student.phone ?: '-' }}</td>
-                <td>{{ student.registration_number ?: 'Non inscrit' }}</td>
-                <td>{{ student.registration_date ?: '-' }}</td>
-                <td>{{ students_macros.status(student.status) }}</td>
-                <td><a href="{{ path('app_student_show', {id: student.id}) }}">Fiche →</a></td>
+        {% for group in groups %}
+            <tbody>
+            <tr class="group-row">
+                <th colspan="8">
+                    {{ group.cycle }}
+                    <span class="badge">{{ group.students|length }} eleve(s) sur cette page</span>
+                    {% if filters.cycle != group.cycle %}
+                        <a href="{{ path('app_students', filters|merge({cycle: group.cycle, page: 1})) }}">Voir uniquement ce cycle →</a>
+                    {% endif %}
+                </th>
             </tr>
+            {% for student in group.students %}
+                <tr>
+                    <td><strong>{{ student.last_name }} {{ student.first_name }}</strong></td>
+                    <td class="cycle">{{ student.cycle }}</td>
+                    <td>{{ student.registered_class ?: student.class_name }}</td>
+                    <td>{{ student.phone ?: '-' }}</td>
+                    <td>{{ student.registration_number ?: 'Non inscrit' }}</td>
+                    <td>{{ student.registration_date ?: '-' }}</td>
+                    <td>{{ students_macros.status(student.status) }}</td>
+                    <td><a href="{{ path('app_student_show', {id: student.id}) }}">Fiche →</a></td>
+                </tr>
+            {% endfor %}
+            </tbody>
         {% else %}
+            <tbody>
             <tr><td colspan="8">Aucun eleve ne correspond aux criteres.</td></tr>
+            </tbody>
         {% endfor %}
-        </tbody>
     </table>
     <div class="pagination">
         <span>{{ total }} eleve(s) · page {{ page }} / {{ pages }}</span>
